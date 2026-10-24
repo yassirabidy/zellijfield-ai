@@ -20,7 +20,8 @@ ARG SAGEATTENTION_REF=d1a57a546c3d395b1ffcbeecc66d81db76f3b4b5
 #   8.6 RTX 30xx · 8.9 RTX 40xx · 12.0 RTX 50xx · 8.0 A100. Separate several with ';'.
 ARG CUDA_ARCHITECTURES="8.0;8.6"
 ARG INSTALL_SAGEATTENTION=1
-ARG MAX_JOBS=8
+# Parallel nvcc jobs for SageAttention. Each can use 3-4 GB RAM; 8 jobs exhausted a 16 GB machine.
+ARG MAX_JOBS=2
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \

@@ -70,6 +70,9 @@ Bump these deliberately and re-test a real generation afterwards.
 
 `ZF_CUDA_ARCHITECTURES` in `.env` must include the client GPU's compute capability
 (RTX 30xx = 8.6, RTX 40xx = 8.9, RTX 50xx = 12.0) or SageAttention will not run on it.
+`ZF_BUILD_JOBS` sets how many CUDA compile jobs run in parallel during that build; each needs
+about 4 GB of RAM. Keep 2 on a 16 GB PC (8 jobs crashed Docker Desktop's WSL VM in testing);
+use 4 or more on 32 GB+.
 
 ## Security
 
