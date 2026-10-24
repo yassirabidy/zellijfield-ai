@@ -1,0 +1,30 @@
+# NVIDIA GPU access for the inference services. Merged by default through COMPOSE_FILE in .env.
+# Requires the NVIDIA driver on the host and GPU support in Docker (Docker Desktop + WSL2 on
+# Windows, nvidia-container-toolkit on Linux). Check with: preflight.bat / ./preflight.sh
+#
+# To pin a specific GPU, replace `count: all` with `device_ids: ["0"]`.
+
+services:
+  wan2gp:
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,video
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  comfyui:
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,video
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

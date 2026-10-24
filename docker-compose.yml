@@ -1,9 +1,99 @@
+# Zellijfield AI — local AI video/image studio.
+#
+#   docker compose up -d                       # mock profile (studio only) via COMPOSE_PROFILES in .env
+#   docker compose --profile wan2gp up -d      # studio + Wan2GP (GPU)
+#   docker compose --profile comfyui up -d     # studio + ComfyUI (GPU)
+#   docker compose --profile full up -d        # everything
+#
+# GPU access comes from docker-compose.gpu.yml, which .env adds through COMPOSE_FILE.
+# Only the studio publishes a port, bound to 127.0.0.1. Wan2GP and ComfyUI are reachable
+# solely over the internal compose network. The Docker socket is never mounted.
+
+name: zellijfield-ai
+
+x-restart-logging: &restart-logging
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
-  zellijfield-ai:
-    build: .
-    container_name: zellijfield-ai
+  studio:
+    <<: *restart-logging
+    profiles: ["mock", "wan2gp", "comfyui", "full"]
+    build:
+      context: .
+      dockerfile: docker/studio/Dockerfile
+    image: zellijfield-ai/studio:${ZF_IMAGE_TAG:-local}
     ports:
-      - "3001:3000"
+      - "${ZF_BIND_ADDRESS:-127.0.0.1}:${ZF_STUDIO_PORT:-3000}:3000"
     environment:
-      - NODE_ENV=production
-    restart: unless-stopped
+      DEFAULT_BACKEND: ${ZF_DEFAULT_BACKEND:-mock}
+      WAN2GP_MCP_URL: ${ZF_WAN2GP_MCP_URL:-http://wan2gp:7866/mcp}
+      COMFYUI_URL: ${ZF_COMFYUI_URL:-http://comfyui:8188}
+      DATA_DIR: /data
+      OUTPUTS_DIR: /outputs
+      WORKFLOWS_DIR: /workflows
+      MODELS_DIR: /models
+    volumes:
+      - ${ZF_DATA_DIR:-./data}:/data
+      - ${ZF_OUTPUTS_DIR:-./data/outputs}:/outputs
+      - ${ZF_WORKFLOWS_DIR:-./workflows}:/workflows:ro
+      - ${ZF_MODELS_DIR:-./models}:/models:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  wan2gp:
+    <<: *restart-logging
+    profiles: ["wan2gp", "full"]
+    build:
+      context: ./docker/wan2gp
+      args:
+        CUDA_ARCHITECTURES: ${ZF_CUDA_ARCHITECTURES:-8.0;8.6}
+        INSTALL_SAGEATTENTION: ${ZF_WAN2GP_SAGEATTENTION:-1}
+    image: zellijfield-ai/wan2gp:${ZF_IMAGE_TAG:-local}
+    expose:
+      - "7866"
+    shm_size: "8gb"
+    volumes:
+      - ${ZF_MODELS_DIR:-./models}/wan2gp:/opt/wan2gp/ckpts
+      - ${ZF_MODELS_DIR:-./models}/wan2gp-loras:/opt/wan2gp/loras
+      - ${ZF_MODELS_DIR:-./models}/huggingface:/home/wangp/.cache/huggingface
+      - ${ZF_DATA_DIR:-./data}/wan2gp:/config
+      - ${ZF_OUTPUTS_DIR:-./data/outputs}/wan2gp:/outputs
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 7866), 3).close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 600s
+      retries: 5
+
+  comfyui:
+    <<: *restart-logging
+    profiles: ["comfyui", "full"]
+    build:
+      context: ./docker/comfyui
+      args:
+        INSTALL_COSMOS3: ${ZF_COMFYUI_COSMOS3:-1}
+        INSTALL_MELBAND: ${ZF_COMFYUI_MELBAND:-0}
+    image: zellijfield-ai/comfyui:${ZF_IMAGE_TAG:-local}
+    expose:
+      - "8188"
+    shm_size: "8gb"
+    volumes:
+      - ${ZF_MODELS_DIR:-./models}/comfyui:/opt/comfyui/models
+      - ${ZF_MODELS_DIR:-./models}/huggingface:/home/comfy/.cache/huggingface
+      - ${ZF_DATA_DIR:-./data}/comfyui:/data
+      - ${ZF_OUTPUTS_DIR:-./data/outputs}/comfyui:/outputs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8188/system_stats', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 180s
+      retries: 5
