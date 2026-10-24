@@ -1,0 +1,3 @@
+# Build context is this folder; only the entrypoint is needed.
+*
+!entrypoint.sh
