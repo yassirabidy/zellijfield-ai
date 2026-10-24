@@ -5,9 +5,9 @@ const { execFileSync } = require('child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const PACKAGE_JSON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
-const PRODUCT_NAME = PACKAGE_JSON.build?.productName || 'Reel Studio';
-const PACKAGE_NAME = 'reel-studio';
-const COMMAND_NAME = 'reel-studio';
+const PRODUCT_NAME = PACKAGE_JSON.build?.productName || 'Zellijfield AI';
+const PACKAGE_NAME = 'zellijfield-ai';
+const COMMAND_NAME = 'zellijfield-ai';
 const INSTALL_DIR_NAME = PACKAGE_NAME;
 const LINUX_DEPENDS = [
     'libasound2t64 | libasound2',

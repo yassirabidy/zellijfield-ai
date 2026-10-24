@@ -1,7 +1,7 @@
 import StandaloneShell from '@/components/StandaloneShell';
 
 export const metadata = {
-  title: 'Workflow — Reel Studio',
+  title: 'Workflow — Zellijfield AI',
 };
 
 export default function WorkflowPage() {

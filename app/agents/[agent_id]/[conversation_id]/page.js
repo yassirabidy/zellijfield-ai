@@ -10,7 +10,7 @@ import AgentChatClient from "../AgentChatClient";
  */
 export async function generateMetadata({ params }) {
   return {
-    title: `Agent Chat — Reel Studio`,
+    title: `Agent Chat — Zellijfield AI`,
   };
 }
 

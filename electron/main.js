@@ -6,7 +6,7 @@ const { register: registerWan2gp } = require('./lib/wan2gpProvider');
 process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
     try {
-        dialog.showErrorBox('Reel Studio — Unexpected Error', err && err.stack ? err.stack : String(err));
+        dialog.showErrorBox('Zellijfield AI — Unexpected Error', err && err.stack ? err.stack : String(err));
     } catch (_) {
         // dialog unavailable this early; the console log above is the fallback
     }
@@ -40,7 +40,7 @@ function createWindow() {
         ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
         backgroundColor: '#0d0d0d',
         show: false,
-        title: 'Reel Studio',
+        title: 'Zellijfield AI',
     });
 
     const indexPath = path.join(__dirname, '../dist/index.html');
@@ -77,7 +77,7 @@ app.whenReady().then(() => {
         console.error('Failed to register local-ai/wan2gp handlers:', err);
         dialog.showErrorBox(
             'Local AI features unavailable',
-            `Reel Studio started, but local model support failed to initialize:\n\n${err.message}`
+            `Zellijfield AI started, but local model support failed to initialize:\n\n${err.message}`
         );
     }
 

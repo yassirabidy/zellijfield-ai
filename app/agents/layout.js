@@ -4,7 +4,7 @@
  * The api key is available via the muapi_key cookie which StandaloneShell sets.
  */
 export const metadata = {
-  title: "Agent Chat — Reel Studio",
+  title: "Agent Chat — Zellijfield AI",
 };
 
 export default function AgentsLayout({ children }) {

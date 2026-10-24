@@ -270,7 +270,7 @@ const translations = {
         // MCP & CLI page
         'mcp.tagline': 'For developers & AI agents',
         'mcp.title': 'MCP & CLI',
-        'mcp.subtitle': 'Use Reel Studio from your terminal, your IDE, or any MCP-compatible assistant. Generate cinematic images, videos, and audio across 100+ models — without leaving your workflow.',
+        'mcp.subtitle': 'Use Zellijfield AI from your terminal, your IDE, or any MCP-compatible assistant. Generate cinematic images, videos, and audio across 100+ models — without leaving your workflow.',
         'mcp.quickStart': 'Quick start',
     },
     zh: {
@@ -494,7 +494,7 @@ const translations = {
         // MCP & CLI page
         'mcp.tagline': '面向开发者与 AI 智能体',
         'mcp.title': 'MCP & CLI',
-        'mcp.subtitle': '在终端、IDE 或任何兼容 MCP 的助手中使用 Reel Studio。跨 100+ 模型生成电影级图像、视频和音频 — 无需离开您的工作流。',
+        'mcp.subtitle': '在终端、IDE 或任何兼容 MCP 的助手中使用 Zellijfield AI。跨 100+ 模型生成电影级图像、视频和音频 — 无需离开您的工作流。',
         'mcp.quickStart': '快速开始',
     },
 };

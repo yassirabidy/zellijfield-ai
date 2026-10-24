@@ -1,11 +1,11 @@
-# Reel Studio (Zellijfield AI)
+# Zellijfield AI
 
-Self-hosted AI video and image studio. Reel Studio is based on
+Self-hosted AI video and image studio. Zellijfield AI is based on
 [Open-Generative-AI](https://github.com/Anil-matcha/Open-Generative-AI) by Anil-matcha (MIT).
 See [NOTICE.md](NOTICE.md) for credits and the licenses of the bundled projects.
 
 > The rest of this README is the upstream documentation, kept for reference. It will be
-> replaced as Reel Studio's Docker setup lands.
+> replaced as Zellijfield AI's Docker setup lands.
 
 ---
 

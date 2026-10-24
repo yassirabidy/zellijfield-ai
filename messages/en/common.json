@@ -24,7 +24,7 @@
     "agents-automation": "Agents & Automation"
   },
   "shell": {
-    "brand": "ReelStudio",
+    "brand": "ZellijfieldAI",
     "studioFallback": "Studio",
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
@@ -55,7 +55,7 @@
     "ariaLabel": "Generation activity and notifications"
   },
   "apiKeyModal": {
-    "title": "Reel Studio",
+    "title": "Zellijfield AI",
     "subtitlePrefix": "Enter your",
     "subtitleSuffix": "API key to start creating",
     "close": "Close",

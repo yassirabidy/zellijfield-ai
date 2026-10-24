@@ -24,7 +24,7 @@
     "agents-automation": "智能体与自动化"
   },
   "shell": {
-    "brand": "ReelStudio",
+    "brand": "ZellijfieldAI",
     "studioFallback": "工作室",
     "expandSidebar": "展开侧边栏",
     "collapseSidebar": "收起侧边栏",
@@ -55,7 +55,7 @@
     "ariaLabel": "生成活动与通知"
   },
   "apiKeyModal": {
-    "title": "Reel Studio",
+    "title": "Zellijfield AI",
     "subtitlePrefix": "输入您的",
     "subtitleSuffix": "API 密钥以开始创作",
     "close": "关闭",

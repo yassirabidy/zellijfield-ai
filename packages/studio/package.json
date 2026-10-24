@@ -1,7 +1,7 @@
 {
   "name": "studio",
   "version": "1.0.0",
-  "description": "Reel Studio components for Muapi",
+  "description": "Zellijfield AI components for Muapi",
   "main": "src/index.js",
   "module": "src/index.js",
   "exports": {

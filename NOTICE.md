@@ -1,6 +1,6 @@
 # Notice
 
-**Reel Studio** (Zellijfield AI) is a standalone project derived from third-party open-source software.
+**Zellijfield AI** is a standalone project derived from third-party open-source software.
 It is not a fork in the GitHub sense: the upstream sources were imported once and their git
 history and submodule links were removed so this repository is self-contained.
 
@@ -27,9 +27,9 @@ repository under `packages/`; each keeps its original license file where one exi
 
 ## Changes made in this repository
 
-- Display and package names renamed from "Open Generative AI" to "Reel Studio" where safe.
+- Display and package names renamed from "Open Generative AI" to "Zellijfield AI" where safe.
 - Upstream copyright notices and license texts are kept unchanged.
 - Further changes (Docker stack, local backends, job queue) are tracked in this repository's git history.
 
-All third-party code remains under its original license. Reel Studio's own additions are
+All third-party code remains under its original license. Zellijfield AI's own additions are
 also released under the MIT License.

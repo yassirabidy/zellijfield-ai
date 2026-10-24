@@ -1,7 +1,7 @@
 {
-  "name": "reel-studio",
-  "description": "Reel Studio (Zellijfield AI) — self-hosted AI image & video studio, based on Open-Generative-AI",
-  "homepage": "https://github.com/yassirabidy/reel-studio",
+  "name": "zellijfield-ai",
+  "description": "Zellijfield AI — self-hosted AI image & video studio, based on Open-Generative-AI",
+  "homepage": "https://github.com/yassirabidy/zellijfield-ai",
   "private": true,
   "version": "2.0.0",
   "license": "MIT",
@@ -37,8 +37,8 @@
     "electron:build:all": "vite build && electron-builder --mac --win --linux"
   },
   "build": {
-    "appId": "ai.zellijfield.reelstudio",
-    "productName": "Reel Studio",
+    "appId": "ai.zellijfield.app",
+    "productName": "Zellijfield AI",
     "copyright": "Copyright © 2025",
     "directories": {
       "output": "release"

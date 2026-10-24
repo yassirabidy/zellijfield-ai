@@ -87,7 +87,7 @@ function createMcpClient(url, { fetchImpl = fetch } = {}) {
                 const result = await rpc('initialize', {
                     protocolVersion: PROTOCOL_VERSION,
                     capabilities: {},
-                    clientInfo: { name: 'reel-studio', version: '2' },
+                    clientInfo: { name: 'zellijfield-ai', version: '2' },
                 });
                 await rpc('notifications/initialized', {}, { notify: true });
                 return result;

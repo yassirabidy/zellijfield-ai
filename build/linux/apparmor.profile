@@ -1,7 +1,7 @@
 abi <abi/4.0>,
 include <tunables/global>
 
-profile reel-studio /opt/Reel\ Studio/reel-studio flags=(unconfined) {
+profile zellijfield-ai /opt/Zellijfield\ AI/zellijfield-ai flags=(unconfined) {
   userns,
-  include if exists <local/reel-studio>
+  include if exists <local/zellijfield-ai>
 }
