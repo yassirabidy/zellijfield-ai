@@ -4,6 +4,16 @@ Self-hosted AI video and image studio. Zellijfield AI is based on
 [Open-Generative-AI](https://github.com/Anil-matcha/Open-Generative-AI) by Anil-matcha (MIT).
 See [NOTICE.md](NOTICE.md) for credits and the licenses of the bundled projects.
 
+## Quick start (Docker)
+
+```bash
+./start.sh          # Windows: start.bat        — mock mode, no GPU needed
+./start.sh full     # Windows: start.bat full   — studio + Wan2GP + ComfyUI (NVIDIA GPU)
+```
+
+Then open http://127.0.0.1:3000. Stack details, folders, pinned versions and LAN access:
+[docs/DOCKER.md](docs/DOCKER.md).
+
 > The rest of this README is the upstream documentation, kept for reference. It will be
 > replaced as Zellijfield AI's Docker setup lands.
 
