@@ -1,0 +1,24 @@
+# Keep the studio build context small and free of secrets.
+.git
+**/node_modules
+**/.next
+**/dist
+release
+out
+.env
+.env.*
+!.env.example
+**/.env
+
+# Runtime data and model weights never go into an image.
+data
+models
+workflows
+
+# Other images' build files, root marketing screenshots, tests
+docker/wan2gp
+docker/comfyui
+/*.png
+tests
+playwright-report
+test-results
