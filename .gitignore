@@ -36,3 +36,11 @@ out/
 .env
 .env.*
 !.env.example
+
+# TypeScript / Next
+next-env.d.ts
+*.tsbuildinfo
+
+# Zellijfield AI runtime data (bind-mounted into containers)
+/data/
+/models/
