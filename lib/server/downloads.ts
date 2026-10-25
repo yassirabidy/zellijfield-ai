@@ -60,6 +60,9 @@ export interface DownloadManagerOptions {
   // True while the model has queued or running jobs.
   isBusy: (modelId: string) => boolean;
   fetchImpl?: typeof fetch;
+  // Attempts per step for ComfyUI downloads, and the base wait between them.
+  retries?: number;
+  retryDelayMs?: number;
 }
 
 const HF = 'https://huggingface.co/';
@@ -105,7 +108,8 @@ function comfyTargets(model: ModelEntry): string[] {
   return model.comfyui?.requiredFiles ?? [];
 }
 
-export function createDownloadManager(options: DownloadManagerOptions) {
+export function createDownloadManager(input: DownloadManagerOptions) {
+  const options = { retries: 5, retryDelayMs: 3000, ...input };
   const fetchImpl = options.fetchImpl ?? fetch;
   const root = options.comfyuiDir;
   const comfyStates = new Map<string, DownloadState>();
@@ -210,14 +214,27 @@ export function createDownloadManager(options: DownloadManagerOptions) {
     await fsp.rename(part, file.target);
   }
 
+  // Brief network drops (DNS hiccups, resets) are retried; each retry resumes the .part file.
+  async function withRetries<T>(signal: AbortSignal, run: () => Promise<T>): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await run();
+      } catch (err) {
+        if (signal.aborted || attempt >= options.retries) throw err;
+        console.warn(`[downloads] attempt ${attempt} failed (${(err as Error).message}); retrying`);
+        await new Promise((resolve) => setTimeout(resolve, options.retryDelayMs * attempt));
+      }
+    }
+  }
+
   async function runComfy(model: ModelEntry, state: DownloadState, controller: AbortController): Promise<void> {
     try {
-      const files = await plan(model, controller.signal);
+      const files = await withRetries(controller.signal, () => plan(model, controller.signal));
       state.fileCount = files.length;
       for (const [index, file] of files.entries()) {
         state.fileIndex = index + 1;
         state.file = path.basename(file.target);
-        await fetchFile(file, state, controller.signal);
+        await withRetries(controller.signal, () => fetchFile(file, state, controller.signal));
       }
       state.status = 'succeeded';
     } catch (err) {

@@ -81,7 +81,7 @@ describe('download manager (ComfyUI files)', () => {
   const content = { 'big.safetensors': 'BIG-WEIGHTS', 'shared_vae.safetensors': 'VAE' };
 
   function manager(fetchImpl: typeof fetch, models: ModelEntry[] = [sky, other], busy = false) {
-    return createDownloadManager({ comfyuiDir: dir, getToolsUrl: () => 'http://tools.invalid', getModels: () => models, isBusy: () => busy, fetchImpl });
+    return createDownloadManager({ comfyuiDir: dir, getToolsUrl: () => 'http://tools.invalid', getModels: () => models, isBusy: () => busy, fetchImpl, retryDelayMs: 1 });
   }
 
   it('downloads every missing file into models/comfyui and reports progress', async () => {
@@ -106,6 +106,19 @@ describe('download manager (ComfyUI files)', () => {
     await m.start('sky');
     expect((await settle(m, 'sky')).download?.status).toBe('succeeded');
     expect(hub.requests.find((r) => r.method === 'GET')?.range).toBe('bytes=4-');
+    expect(fs.readFileSync(path.join(dir, 'diffusion_models/big.safetensors'), 'utf8')).toBe('BIG-WEIGHTS');
+  });
+
+  it('retries a dropped connection and resumes the partial file', async () => {
+    const hub = fakeHub(content);
+    let failures = 1;
+    const flaky = (async (input: string | URL, init?: RequestInit) => {
+      if ((init?.method ?? 'GET') === 'GET' && failures-- > 0) throw new TypeError('fetch failed');
+      return hub.impl(input, init);
+    }) as typeof fetch;
+    const m = manager(flaky);
+    await m.start('sky');
+    expect((await settle(m, 'sky')).download?.status).toBe('succeeded');
     expect(fs.readFileSync(path.join(dir, 'diffusion_models/big.safetensors'), 'utf8')).toBe('BIG-WEIGHTS');
   });
 
