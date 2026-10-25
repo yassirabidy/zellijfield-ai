@@ -38,7 +38,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run && node --test tests/*.test.js",
     "test:unit": "vitest run",
-    "test:node": "node --test tests/*.test.js"
+    "test:node": "node --test tests/*.test.js",
+    "test:e2e": "playwright test"
   },
   "build": {
     "appId": "ai.zellijfield.app",

@@ -45,3 +45,8 @@ next-env.d.ts
 /data/
 /models/
 .claude/
+
+# Test artefacts
+/.e2e-data/
+/playwright-report/
+/test-results/
