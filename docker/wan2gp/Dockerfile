@@ -69,7 +69,8 @@ USER wangp
 ENV HOME=/home/wangp \
     HF_HOME=/home/wangp/.cache/huggingface \
     SDL_AUDIODRIVER=dummy \
-    WAN2GP_MCP_PORT=7866 \n    ZF_MODEL_TOOLS_PORT=7867
+    WAN2GP_MCP_PORT=7866 \
+    ZF_MODEL_TOOLS_PORT=7867
 
 # MCP and the model tools only. The Gradio UI is not started and not exposed.
 EXPOSE 7866 7867
