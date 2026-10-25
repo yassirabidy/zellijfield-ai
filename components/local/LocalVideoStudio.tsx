@@ -41,7 +41,7 @@ function FilePicker({ label, accept, required, uploading, fileName, onPick, onCl
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        className="flex h-11 w-full items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/[0.02] text-[12px] text-white/60 transition-colors hover:border-[#22d3ee]/40 hover:text-white"
+        className="flex h-11 w-full items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/[0.02] text-[12px] text-white/60 transition-colors hover:border-[#d1fe17]/40 hover:text-white"
       >
         {uploading ? 'Uploading…' : fileName ?? `Choose ${label.toLowerCase()}`}
       </button>
@@ -195,7 +195,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
                 aria-checked={m.id === modelId}
                 data-testid={`model-${m.id}`}
                 onClick={() => setModelId(m.id)}
-                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${m.id === modelId ? 'border-[#22d3ee]/40 bg-[#22d3ee]/10' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'}`}
+                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${m.id === modelId ? 'border-[#d1fe17]/40 bg-[#d1fe17]/10' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[13px] font-semibold text-white">{m.name}</span>
@@ -228,7 +228,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
             rows={5}
             maxLength={4000}
             placeholder="Describe the shot: subject, action, camera, light…"
-            className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[13px] text-white placeholder:text-white/25 focus:border-[#22d3ee]/50 focus:outline-none"
+            className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[13px] text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none"
           />
         </div>
 
@@ -247,7 +247,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
             <div className="flex gap-1.5">
               {model.aspectRatios.map((r) => (
                 <button key={r} type="button" onClick={() => setAspectRatio(r)}
-                  className={`flex-1 rounded-md border py-1.5 text-[12px] font-semibold ${r === aspectRatio ? 'border-[#22d3ee]/50 bg-[#22d3ee]/10 text-[#22d3ee]' : 'border-white/10 text-white/60 hover:text-white'}`}>
+                  className={`flex-1 rounded-md border py-1.5 text-[12px] font-semibold ${r === aspectRatio ? 'border-[#d1fe17]/50 bg-[#d1fe17]/10 text-[#d1fe17]' : 'border-white/10 text-white/60 hover:text-white'}`}>
                   {r}
                 </button>
               ))}
@@ -286,7 +286,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
           data-testid="generate"
           disabled={!canGenerate}
           onClick={() => void generate()}
-          className="h-11 flex-shrink-0 rounded-lg bg-[#22d3ee] text-[13px] font-bold text-black transition-colors hover:bg-[#06b6d4] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30"
+          className="h-11 flex-shrink-0 rounded-lg bg-[#d1fe17] text-[13px] font-bold text-black transition-colors hover:bg-[#b2d814] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30"
         >
           {busy ? 'Generating…' : 'Generate'}
         </button>
@@ -304,13 +304,13 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
               {busy ? (
                 <button type="button" onClick={() => void cancel()} data-testid="cancel" className="rounded-md border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/70 hover:text-white">Cancel</button>
               ) : (
-                <span className={`text-[12px] font-semibold ${job.status === 'succeeded' ? 'text-emerald-300' : job.status === 'failed' ? 'text-red-300' : 'text-white/50'}`} data-testid="job-status">{job.status}</span>
+                <span className={`text-[12px] font-semibold ${job.status === 'succeeded' ? 'text-lime-300' : job.status === 'failed' ? 'text-red-300' : 'text-white/50'}`} data-testid="job-status">{job.status}</span>
               )}
             </div>
             {busy && (
               <>
                 <div className="h-2 overflow-hidden rounded-full bg-white/5" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(job.progress * 100)}>
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#22d3ee] to-[#a855f7] transition-all duration-300" style={{ width: `${Math.max(2, job.progress * 100)}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#d1fe17] to-[#a855f7] transition-all duration-300" style={{ width: `${Math.max(2, job.progress * 100)}%` }} />
                 </div>
                 <div className="mt-2 flex justify-between text-[11px] text-white/50" data-testid="job-message">
                   <span>{job.status === 'queued' ? 'Waiting for the GPU…' : job.message}</span>
@@ -334,7 +334,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[13px] font-semibold text-white/80">Recent outputs</h2>
-            <Link href="/gallery" className="text-[12px] text-[#22d3ee] hover:underline">Open gallery</Link>
+            <Link href="/gallery" className="text-[12px] text-[#d1fe17] hover:underline">Open gallery</Link>
           </div>
           {gallery.length === 0 ? (
             <p className="text-[12px] text-white/35">Nothing yet. Results are saved to data/outputs/studio.</p>

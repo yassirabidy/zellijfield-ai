@@ -26,7 +26,7 @@ function Card({ title, children, description }: { title: string; description?: s
   );
 }
 
-const inputClass = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[13px] text-white placeholder:text-white/25 focus:border-[#22d3ee]/50 focus:outline-none';
+const inputClass = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[13px] text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none';
 
 export default function SettingsPanel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null);
@@ -107,7 +107,7 @@ export default function SettingsPanel() {
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
         {message && (
           <div role={message.kind === 'error' ? 'alert' : 'status'} data-testid="settings-message"
-            className={`rounded-lg border px-4 py-2.5 text-[13px] ${message.kind === 'ok' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
+            className={`rounded-lg border px-4 py-2.5 text-[13px] ${message.kind === 'ok' ? 'border-lime-500/30 bg-lime-500/10 text-lime-200' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
             {message.text}
           </div>
         )}
@@ -130,7 +130,7 @@ export default function SettingsPanel() {
               </select>
             </label>
             <div className="flex gap-3">
-              <button type="button" onClick={() => void saveBackends()} data-testid="save-backends" className="h-10 rounded-md bg-[#22d3ee] px-4 text-[13px] font-bold text-black hover:bg-[#06b6d4]">Save</button>
+              <button type="button" onClick={() => void saveBackends()} data-testid="save-backends" className="h-10 rounded-md bg-[#d1fe17] px-4 text-[13px] font-bold text-black hover:bg-[#b2d814]">Save</button>
               <button type="button" onClick={() => void checkModels()} className="h-10 rounded-md border border-white/10 px-4 text-[13px] font-semibold text-white/80 hover:text-white">
                 {checking ? 'Checking…' : 'Test connections'}
               </button>
@@ -166,7 +166,7 @@ export default function SettingsPanel() {
               <div key={name}>
                 <div className="mb-1.5 flex items-center justify-between">
                   <span className="text-[12px] font-semibold text-white/70">{KEY_INFO[name].label}</span>
-                  <span className={`text-[11px] font-semibold ${settings?.keys[name] ? 'text-emerald-300' : 'text-white/35'}`} data-testid={`key-state-${name}`}>
+                  <span className={`text-[11px] font-semibold ${settings?.keys[name] ? 'text-lime-300' : 'text-white/35'}`} data-testid={`key-state-${name}`}>
                     {settings?.keys[name] ? 'Saved' : 'Not set'}
                   </span>
                 </div>

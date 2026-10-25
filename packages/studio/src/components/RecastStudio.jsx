@@ -147,7 +147,7 @@ function MediaPickerButton({
       className={promptMediaButtonClassName({
         active: uploadState === UPLOAD_STATE.READY,
         className: isDragging
-          ? "border-[#22d3ee] bg-[#22d3ee]/10 ring-2 ring-[#22d3ee]/50 scale-105"
+          ? "border-[#d1fe17] bg-[#d1fe17]/10 ring-2 ring-[#d1fe17]/50 scale-105"
           : "",
       })}
     >
@@ -273,7 +273,7 @@ function AssetsDropdown({
             onClick={() => setActiveTab(tab)}
             className={`flex-1 text-center py-1 text-xs font-bold capitalize transition-colors ${
               activeTab === tab
-                ? "text-[#22d3ee] border-b border-[#22d3ee]"
+                ? "text-[#d1fe17] border-b border-[#d1fe17]"
                 : "text-white/40 hover:text-white/80"
             }`}
           >
@@ -328,7 +328,7 @@ function AssetsDropdown({
                     e.stopPropagation();
                     setFullscreenUrl(item.url);
                   }}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover/item:opacity-100 flex items-center justify-center transition-opacity text-white hover:text-[#22d3ee]"
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover/item:opacity-100 flex items-center justify-center transition-opacity text-white hover:text-[#d1fe17]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <circle cx="11" cy="11" r="8" />
@@ -353,7 +353,7 @@ function AssetsDropdown({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="text-xs text-black font-black px-2.5 py-1 bg-[#22d3ee] rounded-md hover:bg-[#22d3ee]/90 transition-colors"
+                  className="text-xs text-black font-black px-2.5 py-1 bg-[#d1fe17] rounded-md hover:bg-[#d1fe17]/90 transition-colors"
                 >
                   {copy.buttons.use}
                 </button>
@@ -995,7 +995,7 @@ export default function RecastStudio({
 
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-center px-4 flex flex-col items-center">
               <span className="text-white font-black uppercase text-xl sm:text-3xl tracking-wide mb-1 opacity-90">{copy.empty.titleLine1}</span>
-              <span className="text-[#22d3ee] font-black uppercase text-2xl sm:text-4xl sm:mt-1 tracking-tight">
+              <span className="text-[#d1fe17] font-black uppercase text-2xl sm:text-4xl sm:mt-1 tracking-tight">
                 {copy.empty.titleLine2}
               </span>
             </h1>
@@ -1015,7 +1015,7 @@ export default function RecastStudio({
               <MediaPickerButton
                 accept="video/*"
                 label={copy.labels.video}
-                icon={<VideoIcon className="text-white/40 group-hover:text-[#22d3ee] transition-colors" />}
+                icon={<VideoIcon className="text-white/40 group-hover:text-[#d1fe17] transition-colors" />}
                 onUpload={handleVideoPick}
                 onClear={() => {
                   setVideoUrl(null);
@@ -1034,7 +1034,7 @@ export default function RecastStudio({
               <MediaPickerButton
                 accept="image/*"
                 label={copy.labels.characterImage}
-                icon={<ImageIcon className="text-white/40 group-hover:text-[#22d3ee] transition-colors" />}
+                icon={<ImageIcon className="text-white/40 group-hover:text-[#d1fe17] transition-colors" />}
                 onUpload={handleImageUpload}
                 onClear={() => {
                   setImageUrl(null);
@@ -1077,7 +1077,7 @@ export default function RecastStudio({
                     active: openDropdown === "model",
                   })}
                 >
-                  <div className="w-3.5 h-3.5 bg-[#22d3ee] rounded-sm flex items-center justify-center">
+                  <div className="w-3.5 h-3.5 bg-[#d1fe17] rounded-sm flex items-center justify-center">
                     <span className="text-[9px] font-black text-black">R</span>
                   </div>
                   <span className={PROMPT_CONTROL_LABEL_CLASS}>
@@ -1187,12 +1187,12 @@ export default function RecastStudio({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="text-white/50 group-hover:text-[#22d3ee] transition-colors"
+                    className="text-white/50 group-hover:text-[#d1fe17] transition-colors"
                   >
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                   </svg>
-                  <span className="text-xs font-semibold text-white/70 group-hover:text-[#22d3ee] transition-colors">
+                  <span className="text-xs font-semibold text-white/70 group-hover:text-[#d1fe17] transition-colors">
                     {copy.labels.library}
                   </span>
                   <PromptChevronIcon />

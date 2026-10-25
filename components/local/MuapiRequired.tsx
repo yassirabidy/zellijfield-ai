@@ -14,7 +14,7 @@ export default function MuapiRequired({ onAddKey, feature }: { onAddKey: () => v
           machine&apos;s server and never sent to the browser. Local video generation works without it.
         </p>
         <div className="flex justify-center gap-3">
-          <button type="button" onClick={onAddKey} className="h-10 rounded-md bg-[#22d3ee] px-4 text-[13px] font-bold text-black hover:bg-[#06b6d4]">
+          <button type="button" onClick={onAddKey} className="h-10 rounded-md bg-[#d1fe17] px-4 text-[13px] font-bold text-black hover:bg-[#b2d814]">
             Add Muapi key
           </button>
           <Link href="/studio/video" className="flex h-10 items-center rounded-md border border-white/10 px-4 text-[13px] font-semibold text-white/80 hover:text-white">

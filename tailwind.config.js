@@ -13,9 +13,11 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                // Higgsfield-style lime accent (#d1fe17 = 500).
+                lime: { 50: '#fbffec', 100: '#fbffec', 200: '#f6ffd1', 300: '#eeffa7', 400: '#e1fe68', 500: '#d1fe17', 600: '#b2d814', 700: '#8ead10', 800: '#6d840c', 900: '#4f6109', 950: '#344006' },
                 primary: {
-                    DEFAULT: '#22d3ee',
-                    hover: '#06b6d4',
+                    DEFAULT: '#d1fe17',
+                    hover: '#b2d814',
                 },
                 'app-bg': '#050505',
                 'panel-bg': '#0a0a0a',
@@ -32,7 +34,7 @@ module.exports = {
                 '3xl': '2rem',
             },
             boxShadow: {
-                'glow': '0 0 20px rgba(34, 211, 238, 0.4)',
+                'glow': '0 0 20px rgba(209, 254, 23, 0.4)',
                 'glow-accent': '0 0 20px rgba(168, 85, 247, 0.4)',
                 '3xl': '0 35px 60px -15px rgba(0, 0, 0, 0.8)',
             }

@@ -1,7 +1,7 @@
 import type { Availability } from '@/lib/client/api';
 
 const STYLES: Record<Availability, { label: string; className: string }> = {
-  installed: { label: 'Installed', className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
+  installed: { label: 'Installed', className: 'bg-lime-500/10 text-lime-300 border-lime-500/30' },
   missing: { label: 'Not found', className: 'bg-amber-500/10 text-amber-300 border-amber-500/30' },
   unreachable: { label: 'Unreachable', className: 'bg-red-500/10 text-red-300 border-red-500/30' },
   'needs-key': { label: 'Needs key', className: 'bg-white/5 text-white/60 border-white/15' },

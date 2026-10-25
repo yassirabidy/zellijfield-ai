@@ -17,10 +17,12 @@ module.exports = {
         sans: ["Inter", "var(--font-inter)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
       },
       colors: {
+        // Higgsfield-style lime accent (#d1fe17 = 500).
+        lime: { 50: '#fbffec', 100: '#fbffec', 200: '#f6ffd1', 300: '#eeffa7', 400: '#e1fe68', 500: '#d1fe17', 600: '#b2d814', 700: '#8ead10', 800: '#6d840c', 900: '#4f6109', 950: '#344006' },
         'app-bg': '#050505',
         'panel-bg': '#0a0a0a',
         'card-bg': '#111111',
-        primary: '#22d3ee',
+        primary: '#d1fe17',
         secondary: '#a1a1aa',
         muted: '#52525b',
       },

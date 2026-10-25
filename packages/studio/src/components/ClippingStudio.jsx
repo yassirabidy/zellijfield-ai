@@ -49,7 +49,7 @@ const dismissErrorToast = (toastId) => {
 // ---------------------------------------------------------------------------
 // Inline SVG Icons
 // ---------------------------------------------------------------------------
-const ScissorsIcon = ({ className = "text-[#22d3ee]" }) => (
+const ScissorsIcon = ({ className = "text-[#d1fe17]" }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <circle cx="6" cy="6" r="3" />
     <circle cx="6" cy="18" r="3" />
@@ -623,7 +623,7 @@ export default function ClippingStudio({
 
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-center px-4 flex flex-col items-center">
               <span className="text-white font-black uppercase text-xl sm:text-3xl tracking-wide mb-1 opacity-90">{copy.headings.startCreatingWith}</span>
-              <span className="text-[#22d3ee] font-black uppercase text-2xl sm:text-4xl sm:mt-1 tracking-tight">
+              <span className="text-[#d1fe17] font-black uppercase text-2xl sm:text-4xl sm:mt-1 tracking-tight">
                 {copy.headings.aiClippingStudio}
               </span>
             </h1>
@@ -791,7 +791,7 @@ export default function ClippingStudio({
                             }}
                             className={`w-full p-4 border rounded-lg text-left transition-all hover:bg-zinc-900/60 flex flex-col gap-2 group/hl ${
                               isActive 
-                                ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(34,211,238,0.03)]" 
+                                ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(209,254,23,0.03)]" 
                                 : "border-zinc-800 bg-zinc-900/30 hover:border-zinc-700"
                             }`}
                           >
@@ -800,7 +800,7 @@ export default function ClippingStudio({
                                 {hl.label || copy.labels.highlightFallback.replace('{index}', i + 1)}
                               </span>
                               {hl.score && (
-                                <span className="text-[9px] font-black text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20">
+                                <span className="text-[9px] font-black text-lime-400 bg-lime-400/10 px-1.5 py-0.5 rounded border border-lime-400/20">
                                   {(hl.score * 100).toFixed(0)}{copy.labels.scoreSuffix}
                                 </span>
                               )}
@@ -1001,16 +1001,16 @@ export default function ClippingStudio({
                         fill="transparent"
                         strokeDasharray={88}
                         strokeDashoffset={88 - (88 * videoProgress) / 100}
-                        className="text-[#22d3ee] transition-all duration-300"
+                        className="text-[#d1fe17] transition-all duration-300"
                       />
                     </svg>
-                    <span className={`absolute text-[8px] font-black text-[#22d3ee] leading-none ${videoProgress >= 100 ? "animate-pulse" : ""}`}>
+                    <span className={`absolute text-[8px] font-black text-[#d1fe17] leading-none ${videoProgress >= 100 ? "animate-pulse" : ""}`}>
                       {videoProgress >= 100 ? "..." : `${videoProgress}%`}
                     </span>
                   </div>
                 ) : null}
 
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40 group-hover:text-[#22d3ee] transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40 group-hover:text-[#d1fe17] transition-colors">
                   <polygon points="23 7 16 12 23 17 23 7" />
                   <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                 </svg>
@@ -1033,7 +1033,7 @@ export default function ClippingStudio({
               
               {/* Model Identifier (C) */}
               <div className={promptControlClassName()}>
-                <div className="w-4 h-4 bg-[#22d3ee] rounded flex items-center justify-center shadow-lg shadow-[#22d3ee]/10">
+                <div className="w-4 h-4 bg-[#d1fe17] rounded flex items-center justify-center shadow-lg shadow-[#d1fe17]/10">
                   <span className="text-[9px] font-bold text-black uppercase">C</span>
                 </div>
                 <span className={PROMPT_CONTROL_LABEL_CLASS}>
@@ -1125,7 +1125,7 @@ export default function ClippingStudio({
                 className={promptControlClassName({
                   active: returnCoordinatesOnly,
                   className: returnCoordinatesOnly
-                    ? "text-[#22d3ee]"
+                    ? "text-[#d1fe17]"
                     : "text-white/70 hover:text-white",
                 })}
               >

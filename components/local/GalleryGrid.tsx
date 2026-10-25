@@ -50,7 +50,7 @@ export default function GalleryGrid() {
             <div className="mt-3 flex items-center justify-between gap-4 text-[13px] text-white/70">
               <span className="min-w-0 truncate">{open.prompt}</span>
               <div className="flex flex-shrink-0 gap-2">
-                <a href={open.url} download className="rounded-md bg-[#22d3ee] px-3 py-1.5 text-[12px] font-bold text-black">Download</a>
+                <a href={open.url} download className="rounded-md bg-[#d1fe17] px-3 py-1.5 text-[12px] font-bold text-black">Download</a>
                 <button type="button" onClick={() => setOpen(null)} className="rounded-md border border-white/15 px-3 py-1.5 text-[12px]">Close</button>
               </div>
             </div>

@@ -45,7 +45,7 @@ export default function VideoModeSwitch({ hasMuapiKey, onAddKey, cloud, ...callb
             aria-selected={mode === m}
             data-testid={`video-mode-${m}`}
             onClick={() => choose(m)}
-            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${mode === m ? 'bg-[#22d3ee]/15 text-[#22d3ee]' : 'text-white/50 hover:text-white'}`}
+            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${mode === m ? 'bg-[#d1fe17]/15 text-[#d1fe17]' : 'text-white/50 hover:text-white'}`}
           >
             {m === 'local' ? 'Local (this PC)' : 'Cloud (Muapi)'}
           </button>
