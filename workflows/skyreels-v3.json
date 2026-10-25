@@ -2,7 +2,7 @@
   "122": {
     "class_type": "WanVideoModelLoader",
     "inputs": {
-      "model": "WanVideo/SkyreelsV3/Wan21_SkyReelsV3-A2V_fp8_scaled_mixed.safetensors",
+      "model": "WanVideo/SkyreelsV3/Wan21-SkyReelsV3-A2V_fp8_scaled_mixed.safetensors",
       "base_precision": "fp16_fast",
       "quantization": "disabled",
       "load_device": "offload_device",

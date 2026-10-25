@@ -193,7 +193,7 @@
           "INTConstant"
         ],
         "requiredFiles": [
-          "diffusion_models/WanVideo/SkyreelsV3/Wan21_SkyReelsV3-A2V_fp8_scaled_mixed.safetensors",
+          "diffusion_models/WanVideo/SkyreelsV3/Wan21-SkyReelsV3-A2V_fp8_scaled_mixed.safetensors",
           "vae/wanvideo/Wan2_1_VAE_bf16.safetensors",
           "clip_vision/clip_vision_h.safetensors",
           "text_encoders/umt5-xxl-enc-bf16.safetensors"
