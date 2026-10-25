@@ -19,6 +19,7 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     await expect(page.getByTestId('local-shell')).toBeVisible();
     await expect(page.getByTestId('local-nav-video')).toBeVisible();
     await expect(page.getByTestId('local-nav-gallery')).toBeVisible();
+    await expect(page.getByTestId('local-nav-models')).toBeVisible();
     await expect(page.getByTestId('local-nav-settings')).toBeVisible();
     // models.json has no local image models, so there is no Image section.
     await expect(page.getByTestId('local-nav-image')).toHaveCount(0);
@@ -62,11 +63,28 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     await expect(page.getByTestId('job-card')).toHaveAttribute('data-status', 'cancelled');
   });
 
-  test('local settings show backends and models, not API keys', async ({ page }) => {
+  test('local settings show backends, not API keys', async ({ page }) => {
     await page.goto('/local/settings');
     await expect(page.getByTestId('wan2gp-url')).toBeVisible();
-    await expect(page.getByTestId('model-status-list')).toBeVisible();
     await expect(page.getByTestId('key-input-muapi')).toHaveCount(0);
+  });
+
+  test('models page offers downloads and explains a stopped Wan2GP', async ({ page }) => {
+    await page.goto('/local/models');
+    const list = page.getByTestId('model-manager-list');
+    await expect(list).toBeVisible();
+    // Only local engines are managed here; the mock model has nothing to download.
+    await expect(page.getByTestId('manage-mock-video')).toHaveCount(0);
+    const sky = page.getByTestId('manage-skyreels-v3');
+    await expect(sky.getByText('0 of 4 file(s) on disk')).toBeVisible();
+    await expect(sky.getByTestId('download-model')).toBeVisible();
+    // Nothing on disk yet, so nothing to remove.
+    await expect(sky.getByTestId('remove-model')).toHaveCount(0);
+
+    // No Wan2GP container in this test run: the page says how to start it.
+    const wan = page.getByTestId('manage-wan-2.2-t2v');
+    await wan.getByTestId('download-model').click();
+    await expect(wan.getByTestId('model-notice')).toContainText('Wan2GP is not running');
   });
 });
 

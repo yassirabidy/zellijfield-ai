@@ -29,6 +29,8 @@ export default defineConfig({
       // Unreachable on purpose: the smoke test needs no GPU backends.
       WAN2GP_MCP_URL: 'http://127.0.0.1:9/mcp',
       COMFYUI_URL: 'http://127.0.0.1:9',
+      WAN2GP_TOOLS_URL: 'http://127.0.0.1:9',
+      MODELS_DIR: '.e2e-data/models',
       NEXT_TELEMETRY_DISABLED: '1',
     },
   },

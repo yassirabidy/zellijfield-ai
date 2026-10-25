@@ -103,36 +103,36 @@ and the model folders, and creates the folder tree under `models/` and `data/`.
 
 ## 8. Models
 
-### Wan2GP models (MiniMax H3, LTX-2.5, Wan 2.2, HunyuanVideo 1.5)
+Models are downloaded and removed from the website: **Local → Models**. Each model has a
+**Download** button, a progress bar, **Cancel download**, and **Remove** to free disk space when the
+model is no longer needed. Download a model when you need it; nothing is downloaded in advance.
 
-Nothing to do. Wan2GP downloads the weights the first time each model is used, into
-`models/wan2gp/` (so they survive rebuilds). The first generation with a model is therefore slow
-and needs internet. If you already have a Wan2GP installation, you can copy its `ckpts` folder
-contents into `models/wan2gp/` to skip the downloads.
+- **Wan2GP models** (MiniMax H3, LTX-2.5, Wan 2.2, HunyuanVideo 1.5) are downloaded by Wan2GP
+  itself, so they need the `wan2gp` or `full` start mode (section 9). Wan2GP takes a minute or
+  two to get ready before the first bytes arrive. Files go to `models/wan2gp/`. If a model was not
+  downloaded here, Wan2GP still fetches it on the first generation.
+- **ComfyUI models** are downloaded by the studio from Hugging Face into `models/comfyui/`, with
+  the exact names ComfyUI expects. ComfyUI does not need to be running for this. A cancelled
+  download continues where it stopped the next time.
+- **Remove** deletes the model's weight files. Files that another downloaded model still uses
+  (for example a text encoder shared by the Wan 2.2 models) are kept until that model is removed
+  too. A model cannot be removed while it has jobs waiting or running.
 
-### ComfyUI models
+Sizes: SkyReels-V3 ≈ 32 GB in total; each Wan2GP video model 20–60 GB; Cosmos3-Super is very large
+(≈ 196 GB) and **experimental**. Read its license ("openmdw-1.1") before commercial use.
 
-Download these files into `models/comfyui/` with exactly these names:
+If you already have the files (another PC, a USB drive), you can copy them instead:
 
-**SkyReels-V3 (talking avatar: portrait image + voice clip → video)**
-
-| File | Put it in | Source |
+| Model | Files | Put them in |
 |---|---|---|
-| `Wan21-SkyReelsV3-A2V_fp8_scaled_mixed.safetensors` (19 GB) | `models/comfyui/diffusion_models/WanVideo/SkyreelsV3/` | https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/tree/main/SkyReelsV3 |
-| `Wan2_1_VAE_bf16.safetensors` (0.3 GB) | `models/comfyui/vae/wanvideo/` | https://huggingface.co/Kijai/WanVideo_comfy/tree/main |
-| `umt5-xxl-enc-bf16.safetensors` (11 GB) | `models/comfyui/text_encoders/` | https://huggingface.co/Kijai/WanVideo_comfy/tree/main |
-| `clip_vision_h.safetensors` (1.3 GB) | `models/comfyui/clip_vision/` | https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/tree/main/split_files/clip_vision |
+| Wan2GP models | the contents of an existing Wan2GP `ckpts` folder | `models/wan2gp/` |
+| SkyReels-V3 | [Wan21-SkyReelsV3-A2V_fp8_scaled_mixed.safetensors](https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/tree/main/SkyReelsV3) | `models/comfyui/diffusion_models/WanVideo/SkyreelsV3/` |
+| | [Wan2_1_VAE_bf16.safetensors](https://huggingface.co/Kijai/WanVideo_comfy/tree/main) | `models/comfyui/vae/wanvideo/` |
+| | [umt5-xxl-enc-bf16.safetensors](https://huggingface.co/Kijai/WanVideo_comfy/tree/main) | `models/comfyui/text_encoders/` |
+| | [clip_vision_h.safetensors](https://huggingface.co/Comfy-Org/Wan-2.1/tree/main/split_files/clip_vision) | `models/comfyui/clip_vision/` |
+| Cosmos3-Super | the whole [nvidia/Cosmos3-Super-Image2Video](https://huggingface.co/nvidia/Cosmos3-Super-Image2Video) repository | `models/comfyui/cosmos3/Cosmos3-Super-Image2Video/` |
 
-The voice model (wav2vec2) is downloaded automatically on first use.
-
-**Cosmos3-Super image-to-video (experimental)**
-
-Download the repository https://huggingface.co/nvidia/Cosmos3-Super-Image2Video into
-`models/comfyui/cosmos3/Cosmos3-Super-Image2Video/` (the folder must contain `transformer/`, `vae/`,
-`text_tokenizer/`, …). It is very large; read the model card and its license (listed as
-"openmdw-1.1") before commercial use.
-
-**Local → Settings → Models** shows exactly which files are still missing.
+The voice model used by SkyReels-V3 (wav2vec2) is downloaded by ComfyUI on first use.
 
 ## 9. Start
 
@@ -163,13 +163,12 @@ Stop everything with **`stop.bat`** (images, models and outputs are kept).
 1. Open http://127.0.0.1:3000. Every visit starts with a choice: **Local** (this PC's GPU, no keys)
    or **API key** (cloud studios with a Muapi key). Choose **Local**. *Switch mode* in the top bar
    returns to this choice.
-2. In the Local dashboard open **Settings** (left menu) and press **Test connections**. Wan2GP models should show
-   *Installed* or *Not found* (= downloads on first use); ComfyUI models show which files are missing.
-   *Unreachable* means the service is not running yet (section 11).
-3. Open **Video Studio**, pick **Wan 2.2 A14B Text-to-Video** (or LTX-2.5), write a prompt, press
-   **Generate**.
-4. The first run downloads the model; follow it with `docker compose logs -f wan2gp`. The progress
-   bar then shows the denoising steps. Jobs run one at a time on the GPU; others wait in the queue.
+2. In the Local dashboard open **Models** (left menu) and press **Download** on
+   **Wan 2.2 A14B Text-to-Video** (or LTX-2.5). Wait until it shows *Installed*. *Unreachable*
+   means Wan2GP is not running yet (section 11).
+3. Open **Video Studio**, pick that model, write a prompt, press **Generate**.
+4. The progress bar shows the denoising steps. Jobs run one at a time on the GPU; others wait in
+   the queue. (A model that was not downloaded first is fetched now, which takes much longer.)
 5. The result plays in the page and is saved to `data/outputs/studio/`. **Gallery** lists them all.
 
 The Local dashboard lists only what runs on this PC: an Image section appears only once local
@@ -209,6 +208,13 @@ Preflight names the program using it. Stop it, or set another port in `.env`, e.
 - In the `mock` profile the GPU services are not started — use `start.bat full`.
 - Wan2GP takes several minutes after start: wait for `docker compose ps` to show it *healthy*.
 - If you changed the URLs in Local → Settings, press **Reset to defaults**.
+
+### A download fails or stops
+
+- Check the internet connection and the free disk space, then press **Download** again: ComfyUI
+  downloads continue where they stopped, and Wan2GP skips the files it already has.
+- Wan2GP downloads need the `wan2gp` or `full` start mode; details are in `docker compose logs -f wan2gp`.
+- ComfyUI download errors are in `docker compose logs -f studio`.
 
 ### "no kernel image is available for execution on the device" (Wan2GP)
 

@@ -5,12 +5,18 @@ One compose project, `zellijfield-ai`, shown as a single stack in Docker Desktop
 | Service | Image | Profiles | Port | GPU |
 |---|---|---|---|---|
 | `studio` | `zellijfield-ai/studio` (Next.js, node:22.23.4-slim, non-root) | mock, wan2gp, comfyui, full | `127.0.0.1:3000` (published) | no |
-| `wan2gp` | `zellijfield-ai/wan2gp` (CUDA 12.8, Wan2GP @ `9d25c60`, MCP API v1) | wan2gp, full | 7866 (internal only) | yes |
+| `wan2gp` | `zellijfield-ai/wan2gp` (CUDA 12.8, Wan2GP @ `9d25c60`, MCP API v1) | wan2gp, full | 7866 MCP, 7867 model tools (internal only) | yes |
 | `comfyui` | `zellijfield-ai/comfyui` (Python 3.12, ComfyUI v0.42.1) | comfyui, full | 8188 (internal only) | yes |
 
 The studio talks to Wan2GP through its MCP server (`http://wan2gp:7866/mcp`) and to ComfyUI over
 HTTP/WebSocket (`http://comfyui:8188`). Containers never spawn each other's processes, and the
 Docker socket is never mounted. Wan2GP's Gradio UI is not started.
+
+The Models page downloads and removes weights. For Wan2GP models it calls a small service in the
+wan2gp container (`docker/wan2gp/zf_model_server.py`, `http://wan2gp:7867`) that runs WanGP's own
+downloader and file lists, so the files match what a generation would fetch. ComfyUI weights are
+downloaded by the studio itself from the Hugging Face sources in `models.json`
+(`comfyui.downloads`); that is why the studio mounts `models/comfyui` writable.
 
 ## Commands
 
@@ -45,6 +51,7 @@ Set in `.env`; relative paths are relative to this folder. On Windows prefer for
 | `./data/outputs` | studio `/outputs`; `wan2gp/` and `comfyui/` subfolders in each engine | generated media, gallery |
 | `./workflows` | studio `/workflows` (read-only) | ComfyUI API-format workflows |
 | `./models` | studio `/models` (read-only, status checks) | all weights |
+| `./models/comfyui` | studio `/models/comfyui` (writable) | ComfyUI downloads from the Models page |
 | `./models/wan2gp` | wan2gp `/opt/wan2gp/ckpts` | Wan2GP weights (auto-downloaded on first use) |
 | `./models/comfyui` | comfyui `/opt/comfyui/models` | ComfyUI weights (`diffusion_models/`, `vae/`, `text_encoders/`, ...) |
 | `./models/huggingface` | both engines' HF cache | Hugging Face downloads |
@@ -61,6 +68,7 @@ a dev server never opens the same SQLite file as the running container.
 | `ZF_DEFAULT_BACKEND` | Backend whose first model is preselected in the Local studio (`wan2gp`). |
 | `ZF_SHOW_MOCK` | `1` lists the *Mock video (no GPU)* test model in the Local dashboard. `0` (default) for clients. |
 | `ZF_WAN2GP_MCP_URL`, `ZF_COMFYUI_URL` | Default backend URLs; the Settings page can override them per install and reset them. |
+| `ZF_WAN2GP_TOOLS_URL` | Wan2GP model download/remove service (`http://wan2gp:7867`). |
 
 ## Pinned versions
 
@@ -88,8 +96,11 @@ use 4 or more on 32 GB+.
 
 ## Security
 
-- Only the studio publishes a port, and only on `127.0.0.1`. Wan2GP's MCP server has no
-  authentication in this setup and is reachable solely on the internal compose network.
+- Only the studio publishes a port, and only on `127.0.0.1`. Wan2GP's MCP server and model-tools
+  service have no authentication in this setup and are reachable solely on the internal compose
+  network.
+- Downloads only use sources listed in `models.json` (Hugging Face URLs, checked when the registry
+  loads); the browser can only name a model. Removing deletes files inside `models/` only.
 - API keys (Muapi, fal, Replicate) are entered in the API-key dashboard's Settings and stored under `./data`;
   they are never sent to the browser or written to logs. Keep `./data` private and out of backups
   you share.
