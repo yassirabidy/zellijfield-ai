@@ -34,6 +34,8 @@ services:
       SHOW_MOCK: ${ZF_SHOW_MOCK:-0}
       WAN2GP_MCP_URL: ${ZF_WAN2GP_MCP_URL:-http://wan2gp:7866/mcp}
       COMFYUI_URL: ${ZF_COMFYUI_URL:-http://comfyui:8188}
+      # Wan2GP model download/remove service (docker/wan2gp/zf_model_server.py).
+      WAN2GP_TOOLS_URL: ${ZF_WAN2GP_TOOLS_URL:-http://wan2gp:7867}
       DATA_DIR: /data
       OUTPUTS_DIR: /outputs
       WORKFLOWS_DIR: /workflows
@@ -43,6 +45,8 @@ services:
       - ${ZF_OUTPUTS_DIR:-./data/outputs}:/outputs
       - ${ZF_WORKFLOWS_DIR:-./workflows}:/workflows:ro
       - ${ZF_MODELS_DIR:-./models}:/models:ro
+      # Writable so the Models page can download and remove ComfyUI weights.
+      - ${ZF_MODELS_DIR:-./models}/comfyui:/models/comfyui
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -65,6 +69,7 @@ services:
     command: ["--profile", "${ZF_WAN2GP_PROFILE:-4}"]
     expose:
       - "7866"
+      - "7867"
     shm_size: "8gb"
     volumes:
       - ${ZF_MODELS_DIR:-./models}/wan2gp:/opt/wan2gp/ckpts

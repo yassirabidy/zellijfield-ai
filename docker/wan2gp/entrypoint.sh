@@ -20,6 +20,9 @@ fi
 
 mkdir -p /config/settings
 
+# Model download/remove service used by the studio's Models page (internal network only).
+python3 /opt/zf/zf_model_server.py &
+
 exec python3 wgp.py \
     --mcp \
     --mcp-api-version 1 \

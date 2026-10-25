@@ -1,3 +1,5 @@
-# Build context is this folder; only the entrypoint is needed.
+# Build context is this folder; only the entrypoint and the model tools are needed.
 *
 !entrypoint.sh
+!zf_models.py
+!zf_model_server.py

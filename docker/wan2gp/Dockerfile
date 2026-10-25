@@ -62,15 +62,17 @@ RUN useradd -u 1000 -ms /bin/bash wangp \
     && chown -R wangp:wangp /opt/wan2gp /config /outputs /home/wangp/.cache
 
 COPY --chmod=755 entrypoint.sh /usr/local/bin/wan2gp-entrypoint.sh
+# Model download/remove service for the studio (internal port 7867, see zf_model_server.py).
+COPY --chmod=644 zf_models.py zf_model_server.py /opt/zf/
 
 USER wangp
 ENV HOME=/home/wangp \
     HF_HOME=/home/wangp/.cache/huggingface \
     SDL_AUDIODRIVER=dummy \
-    WAN2GP_MCP_PORT=7866
+    WAN2GP_MCP_PORT=7866 \n    ZF_MODEL_TOOLS_PORT=7867
 
-# MCP only. The Gradio UI is not started and not exposed.
-EXPOSE 7866
+# MCP and the model tools only. The Gradio UI is not started and not exposed.
+EXPOSE 7866 7867
 # Importing torch and building the session takes a while on first start.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=600s --retries=5 \
     CMD ["python3", "-c", "import os, socket; socket.create_connection(('127.0.0.1', int(os.environ.get('WAN2GP_MCP_PORT', '7866'))), 3).close()"]
