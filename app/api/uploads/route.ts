@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { handleError, jsonError, rejectCrossOrigin } from '@/lib/server/http';
 import { getServices } from '@/lib/server/services';
-import { MAX_UPLOAD_BYTES, UploadError, saveUpload } from '@/lib/server/uploads';
+import { MAX_UPLOAD_BYTES, saveUpload } from '@/lib/server/uploads';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,6 @@ export async function POST(request: Request) {
     const saved = saveUpload(getServices().uploadsDir, new Uint8Array(await file.arrayBuffer()));
     return NextResponse.json(saved, { status: 201 });
   } catch (err) {
-    return handleError(err, [UploadError]);
+    return handleError(err);
   }
 }

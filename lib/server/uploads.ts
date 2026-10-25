@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { ClientError } from './http';
 
 // Start frames / voice clips for local generation. Stored under DATA_DIR/uploads/<uuid>.<ext>;
 // jobs refer to them only by id, so clients never supply file paths.
@@ -40,7 +41,7 @@ export interface SavedUpload {
   bytes: number;
 }
 
-export class UploadError extends Error {}
+export class UploadError extends ClientError {}
 
 export function saveUpload(uploadsDir: string, bytes: Uint8Array): SavedUpload {
   if (bytes.byteLength === 0) throw new UploadError('The file is empty.');

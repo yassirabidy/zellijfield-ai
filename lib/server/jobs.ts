@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { Adapter, GenerationParams } from './adapters/types';
 import { CancelledError } from './adapters/types';
 import type { Database } from './db';
+import { ClientError } from './http';
 import type { ModelEntry } from './registry';
 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
@@ -278,9 +279,6 @@ export class JobQueue extends EventEmitter {
   }
 }
 
-export class JobInputError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'JobInputError';
-  }
+export class JobInputError extends ClientError {
+  override name = 'JobInputError';
 }

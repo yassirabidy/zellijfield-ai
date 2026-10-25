@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handleError, readJson, rejectCrossOrigin } from '@/lib/server/http';
-import { JobInputError, jobInputSchema } from '@/lib/server/jobs';
+import { jobInputSchema } from '@/lib/server/jobs';
 import { getServices } from '@/lib/server/services';
 
 export const runtime = 'nodejs';
@@ -23,6 +23,6 @@ export async function POST(request: Request) {
     const job = getServices().queue.submit(input);
     return NextResponse.json({ job }, { status: 201 });
   } catch (err) {
-    return handleError(err, [JobInputError]);
+    return handleError(err);
   }
 }

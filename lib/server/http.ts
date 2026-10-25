@@ -5,15 +5,26 @@ export function jsonError(status: number, error: string, extra: Record<string, u
   return NextResponse.json({ error, ...extra }, { status });
 }
 
+// Errors whose message is safe to show the user. Marked with a property rather than checked with
+// instanceof: Next bundles each route separately, so the shared job queue may throw an error class
+// from a different bundle than the one a route imports.
+export class ClientError extends Error {
+  readonly expose = true;
+}
+
+function isClientError(err: unknown): err is Error {
+  return err instanceof Error && (err as { expose?: unknown }).expose === true;
+}
+
 // Maps validation errors to 400 with field details; everything else to a generic 500 so internal
 // details (paths, upstream responses that may echo headers) are not leaked to the browser.
-export function handleError(err: unknown, knownClientErrors: Array<new (...args: never[]) => Error> = []): NextResponse {
+export function handleError(err: unknown): NextResponse {
   if (err instanceof ZodError) {
     return jsonError(400, 'Invalid request', {
       issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
     });
   }
-  if (knownClientErrors.some((E) => err instanceof E)) return jsonError(400, (err as Error).message);
+  if (isClientError(err)) return jsonError(400, err.message);
   console.error('[api] unexpected error:', err instanceof Error ? err.message : String(err));
   return jsonError(500, 'Internal error');
 }
