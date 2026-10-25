@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { ImageStudio, VideoStudio, ClippingStudio, MotionControlStudio, VibeMotionStudio, LipSyncStudio, RecastStudio, CinemaStudio, AudioStudio, MarketingStudio, WorkflowStudio, AgentStudio, AppsStudio, AiInfluencerStudio, LayersStudio, getUserBalance } from 'studio';
 
 const DesignAgentStudio = dynamic(() => import('studio').then(mod => mod.DesignAgentStudio), {
@@ -11,8 +12,6 @@ const DesignAgentStudio = dynamic(() => import('studio').then(mod => mod.DesignA
 });
 import axios from 'axios';
 import ApiKeyModal from './ApiKeyModal';
-import MuapiRequired from './local/MuapiRequired';
-import VideoModeSwitch from './local/VideoModeSwitch';
 import { getCommonCopy, getLocaleConfig, localizeStudioPath } from '@/lib/locales';
 
 // Zellijfield AI: the Muapi key lives server-side (Settings). The browser only knows whether one
@@ -344,15 +343,15 @@ export default function StandaloneShell({ locale = 'en' }) {
     if (slug.includes('apps')) return 'apps';
     const firstSegment = slug[0];
     if (firstSegment && TABS.find(t => t.id === firstSegment)) return firstSegment;
-    // Zellijfield AI: local video generation is the default studio.
-    return 'video';
+    return 'image';
   };
 
   const [apiKey, setApiKey] = useState(null);
   const [activeTab, setActiveTab] = useState(getInitialTab());
 
   const [balance, setBalance] = useState(null);
-  const [showKeyModal, setShowKeyModal] = useState(false);
+  // Zellijfield AI: true once we know whether a Muapi key is stored server-side.
+  const [keyChecked, setKeyChecked] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
   const [showVadooBanner, setShowVadooBanner] = useState(() => {
@@ -523,7 +522,7 @@ export default function StandaloneShell({ locale = 'en' }) {
       const { rootPath } = getLocaleConfig(locale);
       const localeAwarePath = rootPath && path.startsWith(rootPath) ? path.slice(rootPath.length) : path;
       const segments = localeAwarePath.split('/').filter(Boolean);
-      const tabId = segments[1] || 'video';
+      const tabId = segments[1] || 'image';
       if (TABS.find(t => t.id === tabId)) {
         setActiveTab(tabId);
       }
@@ -615,20 +614,17 @@ export default function StandaloneShell({ locale = 'en' }) {
       } catch (err) {
         console.error('Settings fetch failed:', err);
       }
+      if (!cancelled) setKeyChecked(true);
     })();
     return () => { cancelled = true; };
   }, [fetchBalance, saveMuapiKey]);
 
+  // Errors propagate to ApiKeyModal, which shows them under the input.
   const handleKeySave = useCallback(async (key) => {
-    try {
-      await saveMuapiKey(key);
-      setApiKey(SERVER_KEY_PLACEHOLDER);
-      setShowKeyModal(false);
-      fetchBalance(SERVER_KEY_PLACEHOLDER);
-    } catch (err) {
-      pushNotification({ type: 'error', tabId: activeTab, label: 'Muapi key', message: err.message });
-    }
-  }, [activeTab, fetchBalance, pushNotification, saveMuapiKey]);
+    await saveMuapiKey(key);
+    setApiKey(SERVER_KEY_PLACEHOLDER);
+    fetchBalance(SERVER_KEY_PLACEHOLDER);
+  }, [fetchBalance, saveMuapiKey]);
 
   // Inject API key into all outgoing Axios requests (prop-based approach)
   // We use an interceptor to be selective and NOT send the key to external domains like S3
@@ -705,6 +701,16 @@ export default function StandaloneShell({ locale = 'en' }) {
       <div className="animate-spin text-[#d1fe17] text-3xl">◌</div>
     </div>
   );
+
+  // Zellijfield AI: the API-key dashboard needs a Muapi key (stored server-side).
+  if (!keyChecked) return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <div className="animate-spin text-[#d1fe17] text-3xl">◌</div>
+    </div>
+  );
+  if (!apiKey) {
+    return <ApiKeyModal onSave={handleKeySave} locale={locale} backHref="/" />;
+  }
 
   return (
     <div 
@@ -832,12 +838,15 @@ export default function StandaloneShell({ locale = 'en' }) {
               </div>
             )}
 
-            <a
-              href="/gallery"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-[13px] font-bold text-white/80 hover:text-white hover:bg-white/10 hover:border-white/20 transition-colors"
+            <span className="hidden sm:inline rounded-full border border-[#d1fe17]/30 bg-[#d1fe17]/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d1fe17]" data-testid="mode-badge">API key</span>
+
+            <Link
+              href="/"
+              data-testid="switch-mode"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-[13px] font-bold text-white/80 hover:text-white hover:bg-white/10 hover:border-white/20 transition-colors"
             >
-              Gallery
-            </a>
+              Switch mode
+            </Link>
 
             <a
               href="/settings"
@@ -1012,26 +1021,11 @@ export default function StandaloneShell({ locale = 'en' }) {
 
         {/* Studio Content */}
         <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-[#030303]">
-        {/* Zellijfield AI: Video Studio works without Muapi (Local mode is the default). */}
-        <div className={activeTab === 'video' ? "h-full w-full" : "hidden"}>
-          <VideoModeSwitch
-            hasMuapiKey={Boolean(apiKey)}
-            onAddKey={() => setShowKeyModal(true)}
-            onGenerationStart={makeGenerationStartCallback('video')}
-            onGenerationEnd={makeGenerationEndCallback('video')}
-            onGenerationComplete={makeSuccessCallback('video')}
-            onGenerationError={makeErrorCallback('video')}
-            cloud={
-              <VideoStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('video')} onGenerationEnd={makeGenerationEndCallback('video')} onGenerationComplete={makeSuccessCallback('video')} onGenerationError={makeErrorCallback('video')} />
-            }
-          />
-        </div>
-        {!apiKey && activeTab !== 'video' && (
-          <MuapiRequired onAddKey={() => setShowKeyModal(true)} feature={tabLabel(activeTab)} />
-        )}
-        {apiKey && (<>
         <div className={activeTab === 'image' ? "h-full w-full" : "hidden"}>
           <ImageStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('image')} onGenerationEnd={makeGenerationEndCallback('image')} onGenerationComplete={makeSuccessCallback('image')} onGenerationError={makeErrorCallback('image')} />
+        </div>
+        <div className={activeTab === 'video' ? "h-full w-full" : "hidden"}>
+          <VideoStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('video')} onGenerationEnd={makeGenerationEndCallback('video')} onGenerationComplete={makeSuccessCallback('video')} onGenerationError={makeErrorCallback('video')} />
         </div>
         <div className={activeTab === 'layers' ? "h-full w-full" : "hidden"}>
           <LayersStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('layers')} onGenerationEnd={makeGenerationEndCallback('layers')} onGenerationComplete={makeSuccessCallback('layers')} onGenerationError={makeErrorCallback('layers')} />
@@ -1100,7 +1094,6 @@ export default function StandaloneShell({ locale = 'en' }) {
             onGenerationError={makeErrorCallback('ai-influencer')}
           />
         </div>
-        </>)}
       </div>
     </div>
 
@@ -1225,10 +1218,6 @@ export default function StandaloneShell({ locale = 'en' }) {
         }
       `}</style>
 
-      {/* Muapi key entry (stored server-side; opened from the Muapi notice or Cloud video) */}
-      {showKeyModal && (
-        <ApiKeyModal overlay onSave={handleKeySave} onClose={() => setShowKeyModal(false)} locale={locale} />
-      )}
     </div>
   );
 }

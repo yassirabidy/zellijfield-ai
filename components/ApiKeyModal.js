@@ -3,16 +3,25 @@
 import { useState } from 'react';
 import { getCommonCopy } from '@/lib/locales';
 
-export default function ApiKeyModal({ onSave, onClose, overlay = false, title, subtitle, locale = 'en' }) {
+export default function ApiKeyModal({ onSave, onClose, overlay = false, title, subtitle, locale = 'en', backHref }) {
   const [key, setKey] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const copy = getCommonCopy(locale).apiKeyModal;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmed = key.trim();
     if (!trimmed) { setError(copy.missingKeyError); return; }
-    onSave(trimmed);
+    // Zellijfield AI: onSave stores the key server-side and may reject (invalid key format).
+    setSaving(true);
+    try {
+      await onSave(trimmed);
+    } catch (err) {
+      setError(err?.message || String(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const wrapperClass = overlay
@@ -68,6 +77,7 @@ export default function ApiKeyModal({ onSave, onClose, overlay = false, title, s
 
           <button
             type="submit"
+            disabled={saving}
             className="w-full bg-[#d1fe17] text-black font-medium py-2.5 rounded-md hover:bg-[#e5ff33] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-[#d1fe17]/5"
             suppressHydrationWarning
           >
@@ -80,6 +90,11 @@ export default function ApiKeyModal({ onSave, onClose, overlay = false, title, s
               {copy.getOneFree}
             </a>
           </p>
+          {backHref && (
+            <p className="text-center text-[12px]">
+              <a href={backHref} data-testid="back-to-modes" className="text-white/40 hover:text-white transition-colors">← Back to mode selection</a>
+            </p>
+          )}
         </form>
       </div>
     </div>
