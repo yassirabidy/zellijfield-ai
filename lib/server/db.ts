@@ -33,7 +33,9 @@ const MIGRATIONS = [
 export function openDatabase(file: string): Database {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
-  db.exec('PRAGMA journal_mode = WAL');
+  // Rollback journal, not WAL: WAL's shared-memory file fails with "disk I/O error" on Docker
+  // Desktop bind mounts from a Windows host (./data). One server process writes, so WAL gains nothing.
+  db.exec('PRAGMA journal_mode = DELETE');
   db.exec('PRAGMA busy_timeout = 5000');
   for (const sql of MIGRATIONS) db.exec(sql);
   return db;

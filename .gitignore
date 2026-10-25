@@ -50,3 +50,4 @@ next-env.d.ts
 /.e2e-data/
 /playwright-report/
 /test-results/
+/.dev-data/

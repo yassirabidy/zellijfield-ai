@@ -57,7 +57,13 @@ export function getServices(): Services {
   return globalForServices.__zfServices;
 }
 
-const STATUS_TIMEOUT_MS = 6000;
+// A running backend answers in milliseconds; a stopped one (e.g. in the mock profile, where the
+// service name does not resolve) should not hold up the model list.
+const STATUS_TIMEOUT_MS = 3000;
+
+const BACKEND_LABEL: Record<ModelEntry['backend'], string> = {
+  mock: 'Mock', wan2gp: 'Wan2GP', comfyui: 'ComfyUI', fal: 'fal', replicate: 'Replicate',
+};
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
@@ -86,7 +92,11 @@ export async function listModelsWithStatus(): Promise<ModelWithStatus[]> {
         return;
       }
       try {
-        const res = await withTimeout(adapter.status(list), STATUS_TIMEOUT_MS, `${backend} did not answer within ${STATUS_TIMEOUT_MS / 1000}s`);
+        const res = await withTimeout(
+          adapter.status(list),
+          STATUS_TIMEOUT_MS,
+          `${BACKEND_LABEL[backend]} is not running or not reachable (no answer within ${STATUS_TIMEOUT_MS / 1000}s). Start it with the "${backend}" or "full" profile, or check its URL in Settings.`,
+        );
         for (const [id, s] of res) statuses.set(id, s);
       } catch (err) {
         for (const m of list) statuses.set(m.id, { status: 'unreachable', detail: (err as Error).message });
