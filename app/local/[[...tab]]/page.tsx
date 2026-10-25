@@ -6,7 +6,7 @@ export const metadata = {
   title: 'Local studio — Zellijfield AI',
 };
 
-const TABS: LocalTab[] = ['video', 'image', 'gallery', 'settings'];
+const TABS: LocalTab[] = ['video', 'image', 'gallery', 'models', 'settings'];
 
 export default async function LocalPage({ params }: { params: Promise<{ tab?: string[] }> }) {
   const { tab = [] } = await params;

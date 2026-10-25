@@ -66,6 +66,34 @@ export interface PublicSettings {
   keys: { muapi: boolean; fal: boolean; replicate: boolean };
 }
 
+export type DownloadStatus = 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled';
+
+export interface DownloadState {
+  modelId: string;
+  status: DownloadStatus;
+  file?: string | null;
+  fileIndex?: number | null;
+  fileCount?: number | null;
+  completed?: number | null;
+  total?: number | null;
+  received?: number | null;
+  error?: string | null;
+}
+
+export interface ModelDownloadInfo {
+  modelId: string;
+  backend: 'wan2gp' | 'comfyui';
+  downloadable: boolean;
+  download: DownloadState | null;
+  files?: { present: number; total: number; bytes: number; partialBytes: number };
+}
+
+export interface RemoveResult {
+  removed: string[];
+  keptShared: string[];
+  bytesFreed: number;
+}
+
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly issues?: Array<{ path: string; message: string }>) {
     super(message);
@@ -100,6 +128,10 @@ export const api = {
   submitJob: (input: JobInput) => request<{ job: Job }>('/api/jobs', json('POST', input)).then((r) => r.job),
   cancelJob: (id: string) => request<{ cancelled: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
   jobs: (limit = 20) => request<{ jobs: Job[] }>(`/api/jobs?limit=${limit}`).then((r) => r.jobs),
+  downloads: () => request<{ models: ModelDownloadInfo[] }>('/api/downloads').then((r) => r.models),
+  startDownload: (modelId: string) => request<{ started: boolean }>(`/api/models/${encodeURIComponent(modelId)}/download`, { method: 'POST' }),
+  cancelDownload: (modelId: string) => request<{ cancelled: boolean }>(`/api/models/${encodeURIComponent(modelId)}/download`, { method: 'DELETE' }),
+  removeModel: (modelId: string) => request<RemoveResult>(`/api/models/${encodeURIComponent(modelId)}/files`, { method: 'DELETE' }),
   gallery: () => request<{ items: GalleryItem[] }>('/api/gallery').then((r) => r.items),
   upload: (file: File) => {
     const form = new FormData();

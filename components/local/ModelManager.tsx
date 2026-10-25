@@ -1,0 +1,218 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DownloadState, ModelDownloadInfo, ModelInfo } from '@/lib/client/api';
+import { api } from '@/lib/client/api';
+import StatusBadge from './StatusBadge';
+
+// Models page of the Local dashboard: download a model's weights when it is needed and remove
+// them again to free disk space. Wan2GP models are fetched by WanGP itself (inside its
+// container); ComfyUI models are fetched by the studio from the sources in models.json.
+
+const POLL_MS = 1500;
+const ACTIVE: DownloadState['status'][] = ['running', 'cancelling'];
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 ** 2) return `${Math.max(0, Math.round(bytes / 1024))} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+function Progress({ d, starting }: { d: DownloadState; starting: string }) {
+  const fraction = d.total && d.completed ? Math.min(1, d.completed / d.total) : null;
+  const parts: string[] = [];
+  if (d.fileCount && d.fileCount > 1) parts.push(`File ${d.fileIndex ?? 1} of ${d.fileCount}`);
+  if (d.file) parts.push(d.file);
+  if (fraction !== null && d.total) parts.push(`${formatBytes(d.completed!)} of ${formatBytes(d.total)}`);
+  else if (d.file && d.received) parts.push(`${formatBytes(d.received)} received`);
+  else if (d.status !== 'cancelling') parts.push(starting);
+  if (d.status === 'cancelling') parts.push('Cancelling…');
+  return (
+    <div className="mt-3" data-testid="download-progress">
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={fraction === null ? undefined : Math.round(fraction * 100)}
+        className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]"
+      >
+        <div
+          className={`h-full rounded-full bg-[#d1fe17] transition-[width] ${fraction === null ? 'w-1/3 animate-pulse' : ''}`}
+          style={fraction === null ? undefined : { width: `${Math.max(2, fraction * 100)}%` }}
+        />
+      </div>
+      <div className="mt-1.5 truncate text-[11px] text-white/45">{parts.join(' · ')}</div>
+    </div>
+  );
+}
+
+export default function ModelManager() {
+  const [models, setModels] = useState<ModelInfo[] | null>(null);
+  const [downloads, setDownloads] = useState<Record<string, ModelDownloadInfo>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ modelId: string; kind: 'ok' | 'error'; text: string } | null>(null);
+  const wasActive = useRef(new Set<string>());
+
+  const loadStatus = useCallback(async () => {
+    const list = await api.models().catch(() => []);
+    setModels(list.filter((m) => m.backend === 'wan2gp' || m.backend === 'comfyui'));
+  }, []);
+
+  const loadDownloads = useCallback(async () => {
+    const list = await api.downloads().catch(() => null);
+    if (!list) return;
+    setDownloads(Object.fromEntries(list.map((d) => [d.modelId, d])));
+    // Refresh install status when a download ends.
+    const active = new Set(list.filter((d) => d.download && ACTIVE.includes(d.download.status)).map((d) => d.modelId));
+    const finished = [...wasActive.current].filter((id) => !active.has(id));
+    wasActive.current = active;
+    if (finished.length) void loadStatus();
+  }, [loadStatus]);
+
+  useEffect(() => {
+    void loadStatus();
+    void loadDownloads();
+  }, [loadStatus, loadDownloads]);
+
+  const anyActive = Object.values(downloads).some((d) => d.download && ACTIVE.includes(d.download.status));
+  useEffect(() => {
+    if (!anyActive) return;
+    const timer = setInterval(() => void loadDownloads(), POLL_MS);
+    return () => clearInterval(timer);
+  }, [anyActive, loadDownloads]);
+
+  async function act(modelId: string, action: () => Promise<string | void>) {
+    setBusy(modelId);
+    setNotice(null);
+    try {
+      const text = await action();
+      if (text) setNotice({ modelId, kind: 'ok', text });
+    } catch (err) {
+      setNotice({ modelId, kind: 'error', text: (err as Error).message });
+    } finally {
+      setBusy(null);
+      setConfirming(null);
+      await loadDownloads();
+    }
+  }
+
+  const download = (id: string) => act(id, async () => {
+    await api.startDownload(id);
+  });
+  const cancel = (id: string) => act(id, async () => {
+    await api.cancelDownload(id);
+  });
+  const remove = (id: string) =>
+    act(id, async () => {
+      const r = await api.removeModel(id);
+      void loadStatus();
+      const kept = r.keptShared.length ? ` Kept ${r.keptShared.length} file(s) another model still uses.` : '';
+      if (r.removed.length) return `Removed ${r.removed.length} file(s), freed ${formatBytes(r.bytesFreed)}.${kept}`;
+      if (r.bytesFreed) return `Deleted the unfinished download, freed ${formatBytes(r.bytesFreed)}.${kept}`;
+      return `Nothing to remove.${kept}`;
+    });
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-white">Models</h1>
+            <p className="mt-1 text-[13px] leading-5 text-white/45">
+              Download a model when you need it and remove it when you don&apos;t, to free disk space. Large models are tens of GB, so the first download takes a while.
+            </p>
+          </div>
+          <button type="button" onClick={() => void Promise.all([loadStatus(), loadDownloads()])} data-testid="refresh-models"
+            className="h-9 flex-shrink-0 rounded-md border border-white/10 bg-white/5 px-3 text-[13px] font-bold text-white/80 hover:bg-white/10">
+            Refresh
+          </button>
+        </div>
+
+        {models === null ? (
+          <p className="text-[13px] text-white/40">Checking models…</p>
+        ) : models.length === 0 ? (
+          <p className="text-[13px] text-white/40">No local models in models.json.</p>
+        ) : (
+          <ul className="space-y-3" data-testid="model-manager-list">
+            {models.map((m) => {
+              const info = downloads[m.id];
+              const d = info?.download ?? null;
+              const running = !!d && ACTIVE.includes(d.status);
+              const files = info?.files;
+              const installed = m.availability.status === 'installed' || (!!files && files.total > 0 && files.present === files.total);
+              const hasFiles = installed || (!!files && (files.present > 0 || files.partialBytes > 0)) || (m.backend === 'wan2gp' && m.availability.status !== 'unreachable');
+              const canDownload = !!info?.downloadable && !installed && !running;
+              const disabled = busy === m.id;
+              return (
+                <li key={m.id} className="rounded-xl border border-white/[0.07] bg-[#0a0a0b] p-5" data-testid={`manage-${m.id}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-semibold text-white">
+                        {m.name}
+                        {m.experimental && <span className="ml-2 rounded bg-purple-500/15 px-1.5 text-[10px] text-purple-300">experimental</span>}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-white/40">
+                        {m.backend === 'wan2gp' ? 'Wan2GP' : 'ComfyUI'}
+                        {files && ` · ${files.present} of ${files.total} file(s) on disk${files.bytes ? `, ${formatBytes(files.bytes)}` : ''}`}
+                        {files && files.partialBytes > 0 && ` · ${formatBytes(files.partialBytes)} partly downloaded`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {installed ? <StatusBadge status="installed" /> : <StatusBadge status={m.availability.status} detail={m.availability.detail} />}
+                    </div>
+                  </div>
+
+                  {running && d && <Progress d={d} starting={m.backend === 'wan2gp' ? 'Starting Wan2GP (takes a minute or two)…' : 'Preparing…'} />}
+                  {d?.status === 'failed' && <p className="mt-3 text-[12px] text-red-300" role="alert">Download failed: {d.error}</p>}
+                  {d?.status === 'cancelled' && <p className="mt-3 text-[12px] text-white/45">Download cancelled. Download again to continue.</p>}
+                  {notice?.modelId === m.id && (
+                    <p className={`mt-3 text-[12px] ${notice.kind === 'error' ? 'text-red-300' : 'text-lime-300'}`} role={notice.kind === 'error' ? 'alert' : 'status'} data-testid="model-notice">
+                      {notice.text}
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {canDownload && (
+                      <button type="button" disabled={disabled} onClick={() => void download(m.id)} data-testid="download-model"
+                        className="h-9 rounded-md bg-[#d1fe17] px-4 text-[13px] font-bold text-black hover:bg-[#b2d814] disabled:opacity-50">
+                        Download
+                      </button>
+                    )}
+                    {running && (
+                      <button type="button" disabled={disabled || d?.status === 'cancelling'} onClick={() => void cancel(m.id)} data-testid="cancel-download"
+                        className="h-9 rounded-md border border-white/15 bg-white/5 px-4 text-[13px] font-bold text-white/80 hover:bg-white/10 disabled:opacity-50">
+                        Cancel download
+                      </button>
+                    )}
+                    {!running && hasFiles && confirming !== m.id && (
+                      <button type="button" disabled={disabled} onClick={() => setConfirming(m.id)} data-testid="remove-model"
+                        className="h-9 rounded-md border border-red-500/30 bg-red-500/10 px-4 text-[13px] font-bold text-red-300 hover:bg-red-500/20 disabled:opacity-50">
+                        Remove
+                      </button>
+                    )}
+                    {confirming === m.id && (
+                      <>
+                        <button type="button" disabled={disabled} onClick={() => void remove(m.id)} data-testid="confirm-remove"
+                          className="h-9 rounded-md bg-red-500 px-4 text-[13px] font-bold text-white hover:bg-red-600 disabled:opacity-50">
+                          {disabled ? 'Removing…' : 'Delete the model files'}
+                        </button>
+                        <button type="button" disabled={disabled} onClick={() => setConfirming(null)}
+                          className="h-9 rounded-md border border-white/15 bg-white/5 px-4 text-[13px] font-bold text-white/70 hover:bg-white/10">
+                          Keep
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {m.backend === 'wan2gp' && !installed && !running && (
+                    <p className="mt-3 text-[11px] leading-4 text-white/35">Wan2GP must be running (the &quot;wan2gp&quot; or &quot;full&quot; start mode). Without a download here, it also fetches the files on the first generation.</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
