@@ -11,7 +11,13 @@ const DesignAgentStudio = dynamic(() => import('studio').then(mod => mod.DesignA
 });
 import axios from 'axios';
 import ApiKeyModal from './ApiKeyModal';
+import MuapiRequired from './local/MuapiRequired';
+import VideoModeSwitch from './local/VideoModeSwitch';
 import { getCommonCopy, getLocaleConfig, localizeStudioPath } from '@/lib/locales';
+
+// Zellijfield AI: the Muapi key lives server-side (Settings). The browser only knows whether one
+// is configured and passes this placeholder to the upstream studios; /api proxies ignore it.
+const SERVER_KEY_PLACEHOLDER = 'server-managed';
 
 // Tab/category ids, icons, and English `label` fallbacks are stable
 // identifiers, not locale copy — the actual rendered label is resolved
@@ -338,14 +344,15 @@ export default function StandaloneShell({ locale = 'en' }) {
     if (slug.includes('apps')) return 'apps';
     const firstSegment = slug[0];
     if (firstSegment && TABS.find(t => t.id === firstSegment)) return firstSegment;
-    return 'image';
+    // Zellijfield AI: local video generation is the default studio.
+    return 'video';
   };
-  
+
   const [apiKey, setApiKey] = useState(null);
   const [activeTab, setActiveTab] = useState(getInitialTab());
 
   const [balance, setBalance] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
   const [showVadooBanner, setShowVadooBanner] = useState(() => {
@@ -516,7 +523,7 @@ export default function StandaloneShell({ locale = 'en' }) {
       const { rootPath } = getLocaleConfig(locale);
       const localeAwarePath = rootPath && path.startsWith(rootPath) ? path.slice(rootPath.length) : path;
       const segments = localeAwarePath.split('/').filter(Boolean);
-      const tabId = segments[1] || 'image';
+      const tabId = segments[1] || 'video';
       if (TABS.find(t => t.id === tabId)) {
         setActiveTab(tabId);
       }
@@ -574,30 +581,54 @@ export default function StandaloneShell({ locale = 'en' }) {
     }
   }, [activeTab]);
 
+  const saveMuapiKey = useCallback(async (key) => {
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys: { muapi: key } }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.issues?.[0]?.message || body.error || 'Could not save the key');
+    }
+    return res.json();
+  }, []);
+
   useEffect(() => {
     setHasMounted(true);
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setApiKey(stored);
-      fetchBalance(stored);
-      // Sync cookie immediately on mount to establish identity for background requests
-      document.cookie = `muapi_key=${stored}; path=/; max-age=31536000; SameSite=Lax`;
+    let cancelled = false;
+    (async () => {
+      // One-time migration: older versions kept the key in localStorage and a cookie.
+      let legacy = null;
+      try { legacy = localStorage.getItem(STORAGE_KEY); } catch { /* storage unavailable */ }
+      if (legacy) {
+        try { await saveMuapiKey(legacy); } catch (err) { console.error('Muapi key migration failed:', err.message); }
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+        document.cookie = 'muapi_key=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
+      try {
+        const settings = await fetch('/api/settings', { cache: 'no-store' }).then((r) => r.json());
+        if (!cancelled && settings?.keys?.muapi) {
+          setApiKey(SERVER_KEY_PLACEHOLDER);
+          fetchBalance(SERVER_KEY_PLACEHOLDER);
+        }
+      } catch (err) {
+        console.error('Settings fetch failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchBalance, saveMuapiKey]);
+
+  const handleKeySave = useCallback(async (key) => {
+    try {
+      await saveMuapiKey(key);
+      setApiKey(SERVER_KEY_PLACEHOLDER);
+      setShowKeyModal(false);
+      fetchBalance(SERVER_KEY_PLACEHOLDER);
+    } catch (err) {
+      pushNotification({ type: 'error', tabId: activeTab, label: 'Muapi key', message: err.message });
     }
-  }, [fetchBalance]);
-
-  const handleKeySave = useCallback((key) => {
-    localStorage.setItem(STORAGE_KEY, key);
-    setApiKey(key);
-    fetchBalance(key);
-    document.cookie = `muapi_key=${key}; path=/; max-age=31536000; SameSite=Lax`;
-  }, [fetchBalance]);
-
-  const handleKeyChange = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setApiKey(null);
-    setBalance(null);
-    document.cookie = "muapi_key=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-  }, []);
+  }, [activeTab, fetchBalance, pushNotification, saveMuapiKey]);
 
   // Inject API key into all outgoing Axios requests (prop-based approach)
   // We use an interceptor to be selective and NOT send the key to external domains like S3
@@ -674,10 +705,6 @@ export default function StandaloneShell({ locale = 'en' }) {
       <div className="animate-spin text-[#22d3ee] text-3xl">◌</div>
     </div>
   );
-
-  if (!apiKey) {
-    return <ApiKeyModal onSave={handleKeySave} locale={locale} />;
-  }
 
   return (
     <div 
@@ -796,15 +823,25 @@ export default function StandaloneShell({ locale = 'en' }) {
 
           {/* Right: Actions */}
           <div className="flex-shrink-0 flex items-center gap-3">
-            <div className="flex items-center gap-2.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/5 transition-colors">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-bold text-white/90">
-                ${balance !== null ? `${balance}` : '---'}
-              </span>
-            </div>
+            {apiKey && (
+              <div className="flex items-center gap-2.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/5 transition-colors" title="Muapi balance">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-xs font-bold text-white/90">
+                  ${balance !== null ? `${balance}` : '---'}
+                </span>
+              </div>
+            )}
 
-            <button
-              onClick={() => setShowSettings(true)}
+            <a
+              href="/gallery"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-[13px] font-bold text-white/80 hover:text-white hover:bg-white/10 hover:border-white/20 transition-colors"
+            >
+              Gallery
+            </a>
+
+            <a
+              href="/settings"
+              data-testid="open-settings"
               className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-[13px] font-bold text-white/80 hover:text-white hover:bg-white/10 hover:border-white/20 transition-colors"
               aria-label={copy.shell.settings}
             >
@@ -813,7 +850,7 @@ export default function StandaloneShell({ locale = 'en' }) {
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
               <span className="hidden sm:inline">{copy.shell.settings}</span>
-            </button>
+            </a>
           </div>
         </header>
       )}
@@ -975,14 +1012,29 @@ export default function StandaloneShell({ locale = 'en' }) {
 
         {/* Studio Content */}
         <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-[#030303]">
+        {/* Zellijfield AI: Video Studio works without Muapi (Local mode is the default). */}
+        <div className={activeTab === 'video' ? "h-full w-full" : "hidden"}>
+          <VideoModeSwitch
+            hasMuapiKey={Boolean(apiKey)}
+            onAddKey={() => setShowKeyModal(true)}
+            onGenerationStart={makeGenerationStartCallback('video')}
+            onGenerationEnd={makeGenerationEndCallback('video')}
+            onGenerationComplete={makeSuccessCallback('video')}
+            onGenerationError={makeErrorCallback('video')}
+            cloud={
+              <VideoStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('video')} onGenerationEnd={makeGenerationEndCallback('video')} onGenerationComplete={makeSuccessCallback('video')} onGenerationError={makeErrorCallback('video')} />
+            }
+          />
+        </div>
+        {!apiKey && activeTab !== 'video' && (
+          <MuapiRequired onAddKey={() => setShowKeyModal(true)} feature={tabLabel(activeTab)} />
+        )}
+        {apiKey && (<>
         <div className={activeTab === 'image' ? "h-full w-full" : "hidden"}>
           <ImageStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('image')} onGenerationEnd={makeGenerationEndCallback('image')} onGenerationComplete={makeSuccessCallback('image')} onGenerationError={makeErrorCallback('image')} />
         </div>
         <div className={activeTab === 'layers' ? "h-full w-full" : "hidden"}>
           <LayersStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('layers')} onGenerationEnd={makeGenerationEndCallback('layers')} onGenerationComplete={makeSuccessCallback('layers')} onGenerationError={makeErrorCallback('layers')} />
-        </div>
-        <div className={activeTab === 'video' ? "h-full w-full" : "hidden"}>
-          <VideoStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('video')} onGenerationEnd={makeGenerationEndCallback('video')} onGenerationComplete={makeSuccessCallback('video')} onGenerationError={makeErrorCallback('video')} />
         </div>
         <div className={activeTab === 'clipping' ? "h-full w-full" : "hidden"}>
           <ClippingStudio apiKey={apiKey} locale={locale} droppedFiles={droppedFiles} onFilesHandled={handleFilesHandled} onGenerationStart={makeGenerationStartCallback('clipping')} onGenerationEnd={makeGenerationEndCallback('clipping')} onGenerationComplete={makeSuccessCallback('clipping')} onGenerationError={makeErrorCallback('clipping')} />
@@ -1048,6 +1100,7 @@ export default function StandaloneShell({ locale = 'en' }) {
             onGenerationError={makeErrorCallback('ai-influencer')}
           />
         </div>
+        </>)}
       </div>
     </div>
 
@@ -1172,42 +1225,9 @@ export default function StandaloneShell({ locale = 'en' }) {
         }
       `}</style>
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in-up">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-8 w-full max-w-sm shadow-2xl">
-            <h2 className="text-white font-bold text-lg mb-2">{copy.settingsModal.title}</h2>
-            <p className="text-white/40 text-[13px] mb-8">
-              {copy.settingsModal.subtitle}
-            </p>
-
-            <div className="space-y-4 mb-8">
-              <div className="bg-white/5 border border-white/[0.03] rounded-md p-4">
-                <label className="block text-xs font-bold text-white/30 mb-2">
-                   {copy.settingsModal.activeApiKey}
-                </label>
-                <div className="text-[13px] font-mono text-white/80">
-                  {apiKey.slice(0, 8)}••••••••••••••••
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={handleKeyChange}
-                className="flex-1 h-10 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all"
-              >
-                {copy.settingsModal.changeKey}
-              </button>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="flex-1 h-10 rounded-md bg-white/5 text-white/80 hover:bg-white/10 text-xs font-semibold transition-all border border-white/5"
-              >
-                {copy.settingsModal.close}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Muapi key entry (stored server-side; opened from the Muapi notice or Cloud video) */}
+      {showKeyModal && (
+        <ApiKeyModal overlay onSave={handleKeySave} onClose={() => setShowKeyModal(false)} locale={locale} />
       )}
     </div>
   );
