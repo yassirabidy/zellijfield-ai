@@ -85,9 +85,12 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
   const loadModels = useCallback(async () => {
     setLoadingModels(true);
     try {
-      const list = (await api.models()).filter((m) => m.type === 'video');
+      const [all, settings] = await Promise.all([api.models(), api.settings().catch(() => null)]);
+      const list = all.filter((m) => m.type === 'video');
       setModels(list);
-      setModelId((current) => (current && list.some((m) => m.id === current) ? current : list[0]?.id ?? ''));
+      // First choice: keep the current selection, else the first model of the default backend.
+      const preferred = list.find((m) => m.backend === settings?.defaultBackend) ?? list[0];
+      setModelId((current) => (current && list.some((m) => m.id === current) ? current : preferred?.id ?? ''));
     } catch (err) {
       setError((err as Error).message);
     } finally {
