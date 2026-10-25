@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 // Shown in place of the Muapi-powered studios when no Muapi key is configured. Local generation
 // works without it.
 export default function MuapiRequired({ onAddKey, feature }: { onAddKey: () => void; feature?: string }) {
@@ -15,9 +17,9 @@ export default function MuapiRequired({ onAddKey, feature }: { onAddKey: () => v
           <button type="button" onClick={onAddKey} className="h-10 rounded-md bg-[#22d3ee] px-4 text-[13px] font-bold text-black hover:bg-[#06b6d4]">
             Add Muapi key
           </button>
-          <a href="/studio/video" className="flex h-10 items-center rounded-md border border-white/10 px-4 text-[13px] font-semibold text-white/80 hover:text-white">
+          <Link href="/studio/video" className="flex h-10 items-center rounded-md border border-white/10 px-4 text-[13px] font-semibold text-white/80 hover:text-white">
             Local video
-          </a>
+          </Link>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GalleryItem, Job, ModelInfo } from '@/lib/client/api';
 import { api, mediaUrl, TERMINAL, watchJob } from '@/lib/client/api';
@@ -330,7 +331,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[13px] font-semibold text-white/80">Recent outputs</h2>
-            <a href="/gallery" className="text-[12px] text-[#22d3ee] hover:underline">Open gallery</a>
+            <Link href="/gallery" className="text-[12px] text-[#22d3ee] hover:underline">Open gallery</Link>
           </div>
           {gallery.length === 0 ? (
             <p className="text-[12px] text-white/35">Nothing yet. Results are saved to data/outputs/studio.</p>

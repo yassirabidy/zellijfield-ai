@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { GalleryItem } from '@/lib/client/api';
 import { api } from '@/lib/client/api';
@@ -17,10 +18,10 @@ export default function GalleryGrid() {
     <div className="min-h-screen bg-[#030303] text-white">
       <header className="flex h-14 items-center justify-between border-b border-white/[0.05] bg-[#0a0a0b]/80 px-5">
         <div className="flex items-center gap-3">
-          <a href="/studio/video" className="text-[13px] text-white/60 hover:text-white">← Studio</a>
+          <Link href="/studio/video" className="text-[13px] text-white/60 hover:text-white">← Studio</Link>
           <span className="text-sm font-bold">Gallery</span>
         </div>
-        <a href="/settings" className="text-[13px] text-white/60 hover:text-white">Settings</a>
+        <Link href="/settings" className="text-[13px] text-white/60 hover:text-white">Settings</Link>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8">
         {error && <p role="alert" className="text-[13px] text-red-300">{error}</p>}

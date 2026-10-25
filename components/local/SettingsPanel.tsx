@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { ModelInfo, PublicSettings } from '@/lib/client/api';
 import { api } from '@/lib/client/api';
@@ -97,10 +98,10 @@ export default function SettingsPanel() {
     <div className="min-h-screen bg-[#030303] text-white">
       <header className="flex h-14 items-center justify-between border-b border-white/[0.05] bg-[#0a0a0b]/80 px-5">
         <div className="flex items-center gap-3">
-          <a href="/studio/video" className="text-[13px] text-white/60 hover:text-white">← Studio</a>
+          <Link href="/studio/video" className="text-[13px] text-white/60 hover:text-white">← Studio</Link>
           <span className="text-sm font-bold">Settings</span>
         </div>
-        <a href="/gallery" className="text-[13px] text-white/60 hover:text-white">Gallery</a>
+        <Link href="/gallery" className="text-[13px] text-white/60 hover:text-white">Gallery</Link>
       </header>
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
