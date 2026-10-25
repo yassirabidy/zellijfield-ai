@@ -44,3 +44,4 @@ next-env.d.ts
 # Zellijfield AI runtime data (bind-mounted into containers)
 /data/
 /models/
+.claude/
