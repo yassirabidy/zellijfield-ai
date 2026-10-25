@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "mock-video",
+      "name": "Mock video (no GPU)",
+      "description": "Simulated generation that returns a bundled sample clip. Works without any GPU or API key.",
+      "family": "mock",
+      "type": "video",
+      "backend": "mock",
+      "inputs": {
+        "image": "optional",
+        "audio": "none"
+      },
+      "aspectRatios": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ]
+    },
+    {
+      "id": "minimax-h3",
+      "name": "MiniMax H3 FL2VA 20B (pruned)",
+      "description": "Video with synchronized stereo audio from text. Served by Wan2GP.",
+      "family": "minimax",
+      "type": "video",
+      "backend": "wan2gp",
+      "inputs": {
+        "image": "none",
+        "audio": "none"
+      },
+      "wan2gp": {
+        "modelType": "minimax_h3_fl2va_pruned"
+      },
+      "todo": [
+        "First/last-frame inputs: confirm the Wan2GP settings keys for FL2VA before enabling image input.",
+        "No default resolution in defaults/minimax_h3_fl2va_pruned.json; Wan2GP's own default is used."
+      ]
+    },
+    {
+      "id": "ltx-2.5",
+      "name": "LTX-2.5 Distilled 22B",
+      "description": "Video and sound from text, 8 steps, 1280x704. Served by Wan2GP.",
+      "family": "ltx",
+      "type": "video",
+      "backend": "wan2gp",
+      "inputs": {
+        "image": "none",
+        "audio": "none"
+      },
+      "aspectRatios": [
+        "16:9"
+      ],
+      "defaults": {
+        "steps": 8,
+        "frames": 241
+      },
+      "wan2gp": {
+        "modelType": "ltx2_25_22B_distilled",
+        "resolutions": {
+          "16:9": "1280x704"
+        }
+      },
+      "todo": [
+        "Start/end image inputs: confirm the Wan2GP settings keys for LTX-2.5 before enabling image input."
+      ]
+    },
+    {
+      "id": "wan-2.2-t2v",
+      "name": "Wan 2.2 A14B Text-to-Video",
+      "description": "Wan 2.2 14B mixture-of-experts text-to-video, 480p. Served by Wan2GP.",
+      "family": "wan",
+      "type": "video",
+      "backend": "wan2gp",
+      "inputs": {
+        "image": "none",
+        "audio": "none"
+      },
+      "aspectRatios": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "wan2gp": {
+        "modelType": "t2v_2_2",
+        "resolutions": {
+          "16:9": "832x480",
+          "9:16": "480x832",
+          "1:1": "720x720"
+        }
+      }
+    },
+    {
+      "id": "wan-2.2-i2v",
+      "name": "Wan 2.2 A14B Image-to-Video",
+      "description": "Wan 2.2 14B image-to-video, 480p. Needs a start frame. Served by Wan2GP.",
+      "family": "wan",
+      "type": "video",
+      "backend": "wan2gp",
+      "inputs": {
+        "image": "required",
+        "audio": "none"
+      },
+      "aspectRatios": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "wan2gp": {
+        "modelType": "i2v_2_2",
+        "resolutions": {
+          "16:9": "832x480",
+          "9:16": "480x832",
+          "1:1": "720x720"
+        }
+      }
+    },
+    {
+      "id": "hunyuan-video-1.5",
+      "name": "HunyuanVideo 1.5 Text-to-Video 480p",
+      "description": "HunyuanVideo 1.5 (8.3B), 832x480, 97 frames. Served by Wan2GP.",
+      "family": "hunyuan",
+      "type": "video",
+      "backend": "wan2gp",
+      "inputs": {
+        "image": "none",
+        "audio": "none"
+      },
+      "aspectRatios": [
+        "16:9",
+        "9:16"
+      ],
+      "defaults": {
+        "steps": 30,
+        "frames": 97
+      },
+      "wan2gp": {
+        "modelType": "hunyuan_1_5_480_t2v",
+        "resolutions": {
+          "16:9": "832x480",
+          "9:16": "480x832"
+        }
+      }
+    },
+    {
+      "id": "skyreels-v3",
+      "name": "SkyReels-V3 Audio-to-Video (talking avatar)",
+      "description": "SkyReels-V3 long talking-avatar video from a portrait image and a voice clip. Served by ComfyUI (WanVideoWrapper).",
+      "family": "skyreels",
+      "type": "video",
+      "backend": "comfyui",
+      "inputs": {
+        "image": "required",
+        "audio": "required"
+      },
+      "comfyui": {
+        "workflow": "skyreels-v3.json",
+        "outputNode": "131",
+        "inputs": {
+          "prompt": {
+            "node": "241",
+            "input": "positive_prompt"
+          },
+          "negativePrompt": {
+            "node": "241",
+            "input": "negative_prompt"
+          },
+          "seed": [
+            {
+              "node": "317",
+              "input": "seed"
+            },
+            {
+              "node": "320",
+              "input": "seed"
+            }
+          ],
+          "image": {
+            "node": "284",
+            "input": "image"
+          },
+          "audio": {
+            "node": "125",
+            "input": "audio"
+          }
+        },
+        "requiredNodes": [
+          "WanVideoModelLoader",
+          "WanVideoImageToVideoSkyreelsv3_audio",
+          "MultiTalkWav2VecEmbeds",
+          "VHS_VideoCombine",
+          "ImageResizeKJv2",
+          "INTConstant"
+        ],
+        "requiredFiles": [
+          "diffusion_models/WanVideo/SkyreelsV3/Wan21_SkyReelsV3-A2V_fp8_scaled_mixed.safetensors",
+          "vae/wanvideo/Wan2_1_VAE_bf16.safetensors",
+          "clip_vision/clip_vision_h.safetensors",
+          "text_encoders/umt5-xxl-enc-bf16.safetensors"
+        ]
+      },
+      "todo": [
+        "Output size is fixed at 1088x832 and the audio-embed length at 500 frames (nodes 245, 246, 270), as in the upstream example.",
+        "The wav2vec model (TencentGameMate/chinese-wav2vec2-base) is downloaded by ComfyUI on first use."
+      ]
+    },
+    {
+      "id": "cosmos3-super",
+      "name": "NVIDIA Cosmos3-Super Image-to-Video (experimental)",
+      "description": "Cosmos3-Super image-to-video via third-party ComfyUI-Cosmos3 nodes. Very large model; needs ComfyUI dynamic VRAM.",
+      "family": "cosmos",
+      "type": "video",
+      "backend": "comfyui",
+      "experimental": true,
+      "inputs": {
+        "image": "required",
+        "audio": "none"
+      },
+      "comfyui": {
+        "workflow": "cosmos3-super.json",
+        "outputNode": "13",
+        "resolutions": {
+          "16:9": "832x480"
+        },
+        "inputs": {
+          "prompt": {
+            "node": "2",
+            "input": "prompt"
+          },
+          "seed": {
+            "node": "7",
+            "input": "noise_seed"
+          },
+          "steps": {
+            "node": "9",
+            "input": "steps"
+          },
+          "image": {
+            "node": "14",
+            "input": "image"
+          },
+          "frames": [
+            {
+              "node": "2",
+              "input": "num_frames"
+            },
+            {
+              "node": "4",
+              "input": "num_frames"
+            },
+            {
+              "node": "15",
+              "input": "length"
+            }
+          ],
+          "width": [
+            {
+              "node": "2",
+              "input": "width"
+            },
+            {
+              "node": "4",
+              "input": "width"
+            },
+            {
+              "node": "15",
+              "input": "width"
+            }
+          ],
+          "height": [
+            {
+              "node": "2",
+              "input": "height"
+            },
+            {
+              "node": "4",
+              "input": "height"
+            },
+            {
+              "node": "15",
+              "input": "height"
+            }
+          ]
+        },
+        "requiredNodes": [
+          "Cosmos3Loader",
+          "Cosmos3TextEncode",
+          "Cosmos3ImageToVideo",
+          "Cosmos3Scheduler"
+        ],
+        "requiredFiles": [
+          "cosmos3/Cosmos3-Super-Image2Video"
+        ]
+      },
+      "todo": [
+        "Third-party nodes (RyukoMatoiFan/ComfyUI-Cosmos3); output at 16 fps (the model base_fps).",
+        "Checkpoint from huggingface.co/nvidia/Cosmos3-Super-Image2Video goes in models/comfyui/cosmos3/Cosmos3-Super-Image2Video/."
+      ],
+      "aspectRatios": [
+        "16:9"
+      ],
+      "defaults": {
+        "steps": 35,
+        "frames": 93
+      }
+    }
+  ]
+}
