@@ -75,6 +75,6 @@ jobs:
             if curl -sf http://127.0.0.1:3000/api/health; then echo; break; fi
             sleep 2
           done
-          curl -sf http://127.0.0.1:3000/api/models | grep -q '"mock-video"'
+          curl -sf http://127.0.0.1:3000/api/models | grep -q '"wan-2.2-t2v"'
           test "$(docker inspect -f '{{.Config.User}}' studio)" = "node"
           docker logs studio

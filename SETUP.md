@@ -88,7 +88,7 @@ cd D:\ZellijfieldAI
 | `ZF_WAN2GP_PROFILE` | `4` (default). Use `5` if you run out of memory (section 11). |
 
 API keys do **not** go in `.env`. Muapi, fal and Replicate keys are optional and entered in the
-studio's **Settings** page; they are stored in `data/` and never sent to the browser.
+**API key** dashboard (its Settings page); they are stored in `data/` and never sent to the browser.
 
 ## 7. Check the PC
 
@@ -132,7 +132,7 @@ Download the repository https://huggingface.co/nvidia/Cosmos3-Super-Image2Video 
 `text_tokenizer/`, …). It is very large; read the model card and its license (listed as
 "openmdw-1.1") before commercial use.
 
-The studio's **Settings → Models** list shows exactly which files are still missing.
+**Local → Settings → Models** shows exactly which files are still missing.
 
 ## 9. Start
 
@@ -160,17 +160,21 @@ Stop everything with **`stop.bat`** (images, models and outputs are kept).
 
 ## 10. First real generation
 
-1. Open http://127.0.0.1:3000 — it opens **Video Studio → Local (this PC)**.
-2. Open **Settings** (top right) and press **Test connections**. Wan2GP models should show
+1. Open http://127.0.0.1:3000. Every visit starts with a choice: **Local** (this PC's GPU, no keys)
+   or **API key** (cloud studios with a Muapi key). Choose **Local**. *Switch mode* in the top bar
+   returns to this choice.
+2. In the Local dashboard open **Settings** (left menu) and press **Test connections**. Wan2GP models should show
    *Installed* or *Not found* (= downloads on first use); ComfyUI models show which files are missing.
    *Unreachable* means the service is not running yet (section 11).
-3. Back in Video Studio, pick **Wan 2.2 A14B Text-to-Video** (or LTX-2.5), write a prompt, press
+3. Open **Video Studio**, pick **Wan 2.2 A14B Text-to-Video** (or LTX-2.5), write a prompt, press
    **Generate**.
 4. The first run downloads the model; follow it with `docker compose logs -f wan2gp`. The progress
    bar then shows the denoising steps. Jobs run one at a time on the GPU; others wait in the queue.
 5. The result plays in the page and is saved to `data/outputs/studio/`. **Gallery** lists them all.
 
-Mock video (no GPU) is always available for a quick check of the studio itself.
+The Local dashboard lists only what runs on this PC: an Image section appears only once local
+image models are added to `models.json`. For a test without the GPU, set `ZF_SHOW_MOCK=1` in `.env`
+and restart: a *Mock video (no GPU)* model appears. Keep it at `0` for everyday use.
 
 ## 11. Troubleshooting
 
@@ -204,7 +208,7 @@ Preflight names the program using it. Stop it, or set another port in `.env`, e.
 
 - In the `mock` profile the GPU services are not started — use `start.bat full`.
 - Wan2GP takes several minutes after start: wait for `docker compose ps` to show it *healthy*.
-- If you changed the URLs in Settings, press **Reset to defaults**.
+- If you changed the URLs in Local → Settings, press **Reset to defaults**.
 
 ### "no kernel image is available for execution on the device" (Wan2GP)
 

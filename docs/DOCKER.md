@@ -58,7 +58,8 @@ a dev server never opens the same SQLite file as the running container.
 | `.env` | Effect |
 |---|---|
 | `ZF_WAN2GP_PROFILE` | Wan2GP memory profile passed as `--profile` (4 default, 5 fail-safe for low RAM/VRAM). |
-| `ZF_DEFAULT_BACKEND` | Backend preselected by the studio (`mock` by default). |
+| `ZF_DEFAULT_BACKEND` | Backend whose first model is preselected in the Local studio (`wan2gp`). |
+| `ZF_SHOW_MOCK` | `1` lists the *Mock video (no GPU)* test model in the Local dashboard. `0` (default) for clients. |
 | `ZF_WAN2GP_MCP_URL`, `ZF_COMFYUI_URL` | Default backend URLs; the Settings page can override them per install and reset them. |
 
 ## Pinned versions
@@ -89,7 +90,7 @@ use 4 or more on 32 GB+.
 
 - Only the studio publishes a port, and only on `127.0.0.1`. Wan2GP's MCP server has no
   authentication in this setup and is reachable solely on the internal compose network.
-- API keys (Muapi, fal, Replicate) are entered in the studio's Settings and stored under `./data`;
+- API keys (Muapi, fal, Replicate) are entered in the API-key dashboard's Settings and stored under `./data`;
   they are never sent to the browser or written to logs. Keep `./data` private and out of backups
   you share.
 - All containers run as non-root users (uid 1000).

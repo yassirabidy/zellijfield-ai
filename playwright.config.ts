@@ -25,6 +25,7 @@ export default defineConfig({
     env: {
       DATA_DIR: '.e2e-data',
       MOCK_STEP_MS: '300',
+      SHOW_MOCK: '1',
       // Unreachable on purpose: the smoke test needs no GPU backends.
       WAN2GP_MCP_URL: 'http://127.0.0.1:9/mcp',
       COMFYUI_URL: 'http://127.0.0.1:9',

@@ -11,7 +11,8 @@ See [NOTICE.md](NOTICE.md) for credits and the licenses of the bundled projects.
 ./start.sh full     # Windows: start.bat full   — studio + Wan2GP + ComfyUI (NVIDIA GPU)
 ```
 
-Then open http://127.0.0.1:3000. Video Studio opens in **Local** mode; no API key is needed.
+Then open http://127.0.0.1:3000 and choose **Local** (this PC's GPU, no API key) or **API key**
+(the cloud studios with your own Muapi key). The two dashboards are separate.
 
 - Installing on a Windows PC with an NVIDIA GPU: **[SETUP.md](SETUP.md)**
 - Stack details, folders, pinned versions and LAN access: [docs/DOCKER.md](docs/DOCKER.md)
