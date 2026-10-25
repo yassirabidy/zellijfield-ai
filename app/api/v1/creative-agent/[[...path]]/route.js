@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server';
+import { muapiKey } from '@/lib/server/muapi';
 
 const MUAPI_BASE = 'https://api.muapi.ai';
 
-function getApiKey(request) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        return authHeader.substring(7);
-    }
-    const headerKey = request.headers.get('x-api-key');
-    if (headerKey) return headerKey;
-    // Cookie-based auth removed for security: no HttpOnly flag exposes key to XSS (CWE-522)
-    return null;
+// Zellijfield AI: the Muapi key is stored server-side (Settings) and never sent by the browser.
+function getApiKey() {
+    return muapiKey();
 }
 
 function cleanHeaders(request) {
@@ -32,7 +27,7 @@ export async function GET(request, { params }) {
     const targetUrl = `${MUAPI_BASE}/api/v1/creative-agent/${path}${search}`;
 
     const headers = cleanHeaders(request);
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     // NOTE: credential logging removed for security (CWE-200)
 
     if (apiKey) headers.set('x-api-key', apiKey);
@@ -56,7 +51,7 @@ export async function POST(request, { params }) {
     const targetUrl = `${MUAPI_BASE}/api/v1/creative-agent/${path}${search}`;
 
     const headers = cleanHeaders(request);
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     // NOTE: credential logging removed for security (CWE-200)
 
     if (apiKey) headers.set('x-api-key', apiKey);
@@ -81,7 +76,7 @@ export async function PATCH(request, { params }) {
     const targetUrl = `${MUAPI_BASE}/api/v1/creative-agent/${path}${search}`;
 
     const headers = cleanHeaders(request);
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     // NOTE: credential logging removed for security (CWE-200)
 
     if (apiKey) headers.set('x-api-key', apiKey);
@@ -106,7 +101,7 @@ export async function DELETE(request, { params }) {
     const targetUrl = `${MUAPI_BASE}/api/v1/creative-agent/${path}${search}`;
 
     const headers = cleanHeaders(request);
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     // NOTE: credential logging removed for security (CWE-200)
 
     if (apiKey) headers.set('x-api-key', apiKey);

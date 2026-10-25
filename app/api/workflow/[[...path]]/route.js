@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
+import { muapiKey } from '@/lib/server/muapi';
 
 const MUAPI_BASE = 'https://api.muapi.ai';
 
-function getApiKey(request) {
-    // Only accept x-api-key header. Cookie-based auth is removed for security:
-    // cookies without HttpOnly flag can be stolen by any XSS (CWE-522).
-    const headerKey = request.headers.get('x-api-key');
-    return headerKey || null;
+// Zellijfield AI: the Muapi key is stored server-side (Settings) and never sent by the browser.
+function getApiKey() {
+    return muapiKey();
 }
 
 function cleanHeaders(request) {
@@ -27,7 +26,7 @@ export async function GET(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     // NOTE: apiKey is intentionally NOT logged here to prevent credential leakage (CWE-200)
     if (apiKey) headers.set('x-api-key', apiKey);
 
@@ -56,7 +55,7 @@ export async function POST(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     // NOTE: credential logging removed for security (CWE-200)
     if (apiKey) headers.set('x-api-key', apiKey);
 
@@ -91,7 +90,7 @@ export async function DELETE(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (apiKey) headers.set('x-api-key', apiKey);
 
     try {
@@ -116,7 +115,7 @@ export async function PUT(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (apiKey) headers.set('x-api-key', apiKey);
 
     try {

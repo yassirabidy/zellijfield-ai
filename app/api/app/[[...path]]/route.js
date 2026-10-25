@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
+import { muapiKey } from '@/lib/server/muapi';
 
 const MUAPI_BASE = 'https://api.muapi.ai';
 
-function getApiKey(request) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7).trim();
-        if (token) return token;
-    }
-    const headerKey = request.headers.get('x-api-key');
-    return (headerKey && headerKey.trim()) || null;
+// Zellijfield AI: the Muapi key is stored server-side (Settings) and never sent by the browser.
+function getApiKey() {
+    return muapiKey();
 }
 
 function cleanHeaders(request) {
@@ -29,7 +25,7 @@ export async function GET(request, { params }) {
     // Handle alias: get_upload_file -> get_file_upload_url
     const effectivePath = path === 'get_upload_file' ? 'get_file_upload_url' : path;
     
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (effectivePath === 'get_file_upload_url' && !apiKey) {
         return NextResponse.json({ error: 'Unauthorized: Missing API key' }, { status: 401 });
     }
@@ -79,7 +75,7 @@ export async function POST(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (apiKey) headers.set('x-api-key', apiKey);
 
     try {
@@ -107,7 +103,7 @@ export async function DELETE(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (apiKey) headers.set('x-api-key', apiKey);
 
     try {
@@ -132,7 +128,7 @@ export async function PUT(request, { params }) {
 
     const headers = cleanHeaders(request);
 
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (apiKey) headers.set('x-api-key', apiKey);
 
     try {

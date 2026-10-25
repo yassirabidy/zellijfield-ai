@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
+import { muapiKey } from '@/lib/server/muapi';
 
 const MUAPI_BASE = 'https://api.muapi.ai';
 
-function getApiKey(request) {
-    const headerKey = request.headers.get('x-api-key');
-    if (headerKey) return headerKey;
-    // Cookie-based auth removed for security (CWE-522)
-    return null;
+// Zellijfield AI: the Muapi key is stored server-side (Settings) and never sent by the browser.
+function getApiKey() {
+    return muapiKey();
 }
 
 function cleanHeaders(request) {
@@ -28,7 +27,7 @@ export async function GET(request, { params }) {
     const targetUrl = `${MUAPI_BASE}/api/v1/${path}${search}`;
 
     const headers = cleanHeaders(request);
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
 
     // NOTE: credential logging removed for security (CWE-200)
     if (apiKey) headers.set('x-api-key', apiKey);
@@ -51,7 +50,7 @@ export async function POST(request, { params }) {
     const targetUrl = `${MUAPI_BASE}/api/v1/${path}${search}`;
 
     const headers = cleanHeaders(request);
-    const apiKey = getApiKey(request);
+    const apiKey = getApiKey();
     if (apiKey) headers.set('x-api-key', apiKey);
 
     try {

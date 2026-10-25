@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { validateUploadProxyTarget, getApiKeyFromRequest, isBlockedFileType } from '../../../src/lib/uploadProxyTarget';
+import { validateUploadProxyTarget, isBlockedFileType } from '../../../src/lib/uploadProxyTarget';
+import { muapiKey } from '@/lib/server/muapi';
 
 export async function POST(request) {
     try {
-        const apiKey = getApiKeyFromRequest(request);
+        // Zellijfield AI: key stored server-side (Settings), never sent by the browser.
+        const apiKey = muapiKey();
         if (!apiKey) {
             return NextResponse.json({ error: 'Unauthorized: Missing API key' }, { status: 401 });
         }

@@ -24,23 +24,8 @@ function addSecurityHeaders(response) {
 export function middleware(request) {
     const url = request.nextUrl;
 
-    // Catch requests to /api/workflow, /api/app, and /api/v1
-    const isMuApi = url.pathname.startsWith('/api/workflow') ||
-                    url.pathname.startsWith('/api/app') ||
-                    url.pathname.startsWith('/api/v1');
-
-    if (isMuApi) {
-        // Exclude paths that have their own dedicated route handlers with custom logic
-        const isHandledByRoute = url.pathname.startsWith('/api/v1/creative-agent') ||
-                                url.pathname.startsWith('/api/v1/get_upload_url') ||
-                                url.pathname.startsWith('/api/v1/upload-binary');
-
-        if (url.pathname.startsWith('/api/v1') && !isHandledByRoute) {
-            const targetUrl = new URL(url.pathname + url.search, 'https://api.muapi.ai');
-            const rewriteResponse = NextResponse.rewrite(targetUrl);
-            return addSecurityHeaders(rewriteResponse);
-        }
-    }
+    // Zellijfield AI: /api/v1/* is no longer rewritten straight to api.muapi.ai here; the
+    // app/api/v1/[...path] route proxies it and attaches the server-side Muapi key.
 
     // Plain response header carrying the locale derived from the URL path
     // (same "set in middleware, read via headers() in the root layout"
