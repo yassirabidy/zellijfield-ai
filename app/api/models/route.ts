@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
 import { handleError } from '@/lib/server/http';
-import { listModelsWithStatus } from '@/lib/server/services';
+import { listedModels, listModelsWithStatus } from '@/lib/server/services';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Registry entries with live availability (installed / missing / unreachable / needs-key).
-export async function GET() {
+// ?status=0 skips the backend checks and returns instantly (used to build navigation).
+export async function GET(request: Request) {
   try {
-    const models = await listModelsWithStatus();
-    return NextResponse.json({ models });
+    if (new URL(request.url).searchParams.get('status') === '0') {
+      return NextResponse.json({ models: listedModels() });
+    }
+    return NextResponse.json({ models: await listModelsWithStatus() });
   } catch (err) {
     return handleError(err);
   }

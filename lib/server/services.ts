@@ -77,10 +77,16 @@ export interface ModelWithStatus extends ModelEntry {
   availability: ModelStatus;
 }
 
-// Registry entries with live status, one status call per backend, run in parallel.
+// Models offered to users: the mock model only when SHOW_MOCK is on.
+export function listedModels(): ModelEntry[] {
+  const showMock = getEnv().showMock;
+  return getRegistry().models.filter((m) => showMock || m.backend !== 'mock');
+}
+
+// Listed models with live status, one status call per backend, run in parallel.
 export async function listModelsWithStatus(): Promise<ModelWithStatus[]> {
   const { adapters } = getServices();
-  const models = getRegistry().models;
+  const models = listedModels();
   const byBackend = new Map<ModelEntry['backend'], ModelEntry[]>();
   for (const m of models) byBackend.set(m.backend, [...(byBackend.get(m.backend) ?? []), m]);
   const statuses = new Map<string, ModelStatus>();

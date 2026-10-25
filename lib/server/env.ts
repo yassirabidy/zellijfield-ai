@@ -18,6 +18,8 @@ const envSchema = z.object({
   WAN2GP_MODE: z.enum(['mcp', 'spawn']).default('mcp'),
   WAN2GP_DIR: z.string().default(''),
   WAN2GP_PYTHON: z.string().default(''),
+  // List the mock model (no GPU needed). Off for clients; on for testing machines without a GPU.
+  SHOW_MOCK: z.string().optional().transform((v) => v === '1' || v?.toLowerCase() === 'true'),
   // Milliseconds per simulated mock step (tests set it to 0).
   MOCK_STEP_MS: z.coerce.number().int().min(0).max(10_000).default(400),
 });
@@ -36,6 +38,7 @@ export interface ServerEnv {
   wan2gpDir: string;
   wan2gpPython: string;
   mockStepMs: number;
+  showMock: boolean;
 }
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): ServerEnv {
@@ -53,6 +56,7 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     wan2gpDir: e.WAN2GP_DIR,
     wan2gpPython: e.WAN2GP_PYTHON,
     mockStepMs: e.MOCK_STEP_MS,
+    showMock: e.SHOW_MOCK,
   };
 }
 
