@@ -89,7 +89,8 @@ const json = (method: string, data: unknown): RequestInit => ({
 export const api = {
   models: () => request<{ models: ModelInfo[] }>('/api/models').then((r) => r.models),
   settings: () => request<PublicSettings>('/api/settings'),
-  saveSettings: (update: Partial<Omit<PublicSettings, 'keys'>> & { keys?: Partial<Record<keyof PublicSettings['keys'], string>> }) =>
+  // wan2gpUrl / comfyuiUrl: null resets to the server default.
+  saveSettings: (update: { wan2gpUrl?: string | null; comfyuiUrl?: string | null; defaultBackend?: string; keys?: Partial<Record<keyof PublicSettings['keys'], string>> }) =>
     request<PublicSettings>('/api/settings', json('PUT', update)),
   submitJob: (input: JobInput) => request<{ job: Job }>('/api/jobs', json('POST', input)).then((r) => r.job),
   cancelJob: (id: string) => request<{ cancelled: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),

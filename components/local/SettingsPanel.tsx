@@ -71,6 +71,17 @@ export default function SettingsPanel() {
     }
   };
 
+  const resetBackends = async () => {
+    setMessage(null);
+    try {
+      apply(await api.saveSettings({ wan2gpUrl: null, comfyuiUrl: null }));
+      setMessage({ kind: 'ok', text: 'Backend URLs reset to the defaults.' });
+      void checkModels();
+    } catch (err) {
+      setMessage({ kind: 'error', text: (err as Error).message });
+    }
+  };
+
   const saveKey = async (name: KeyName, value: string) => {
     setMessage(null);
     try {
@@ -121,6 +132,9 @@ export default function SettingsPanel() {
               <button type="button" onClick={() => void saveBackends()} data-testid="save-backends" className="h-10 rounded-md bg-[#22d3ee] px-4 text-[13px] font-bold text-black hover:bg-[#06b6d4]">Save</button>
               <button type="button" onClick={() => void checkModels()} className="h-10 rounded-md border border-white/10 px-4 text-[13px] font-semibold text-white/80 hover:text-white">
                 {checking ? 'Checking…' : 'Test connections'}
+              </button>
+              <button type="button" onClick={() => void resetBackends()} className="h-10 rounded-md px-3 text-[12px] font-semibold text-white/50 hover:text-white">
+                Reset to defaults
               </button>
             </div>
           </div>

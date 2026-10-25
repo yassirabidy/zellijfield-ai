@@ -37,6 +37,8 @@ describe('settings', () => {
     expect(() => updateSettings({ keys: { muapi: 'has spaces in it' } }, db, env)).toThrow();
     expect(() => updateSettings({ unknown: 1 }, db, env)).toThrow();
     expect(updateSettings({ comfyuiUrl: 'http://192.168.1.20:8188' }, db, env).comfyuiUrl).toBe('http://192.168.1.20:8188');
+    // null resets to the environment default.
+    expect(updateSettings({ comfyuiUrl: null }, db, env).comfyuiUrl).toBe(env.comfyuiUrl);
   });
 });
 

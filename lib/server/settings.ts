@@ -25,8 +25,9 @@ const apiKey = z.union([
 
 export const settingsUpdateSchema = z
   .object({
-    wan2gpUrl: httpUrl.optional(),
-    comfyuiUrl: httpUrl.optional(),
+    // null resets to the default from the environment (docker-compose.yml / .env).
+    wan2gpUrl: httpUrl.nullable().optional(),
+    comfyuiUrl: httpUrl.nullable().optional(),
     defaultBackend: z.enum(['mock', 'wan2gp', 'comfyui', 'fal', 'replicate']).optional(),
     keys: z
       .object({ muapi: apiKey.optional(), fal: apiKey.optional(), replicate: apiKey.optional() })
