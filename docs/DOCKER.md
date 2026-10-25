@@ -50,6 +50,17 @@ Set in `.env`; relative paths are relative to this folder. On Windows prefer for
 | `./models/huggingface` | both engines' HF cache | Hugging Face downloads |
 | `./data/wan2gp`, `./data/comfyui` | engine config / input / user dirs | engine state |
 
+`npm run dev` outside Docker reads `.env.local` (gitignored); keep `DATA_DIR=./.dev-data` there so
+a dev server never opens the same SQLite file as the running container.
+
+## Runtime settings
+
+| `.env` | Effect |
+|---|---|
+| `ZF_WAN2GP_PROFILE` | Wan2GP memory profile passed as `--profile` (4 default, 5 fail-safe for low RAM/VRAM). |
+| `ZF_DEFAULT_BACKEND` | Backend preselected by the studio (`mock` by default). |
+| `ZF_WAN2GP_MCP_URL`, `ZF_COMFYUI_URL` | Default backend URLs; the Settings page can override them per install and reset them. |
+
 ## Pinned versions
 
 Bump these deliberately and re-test a real generation afterwards.

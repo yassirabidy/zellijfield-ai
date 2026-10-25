@@ -11,8 +11,23 @@ See [NOTICE.md](NOTICE.md) for credits and the licenses of the bundled projects.
 ./start.sh full     # Windows: start.bat full   — studio + Wan2GP + ComfyUI (NVIDIA GPU)
 ```
 
-Then open http://127.0.0.1:3000. Stack details, folders, pinned versions and LAN access:
-[docs/DOCKER.md](docs/DOCKER.md).
+Then open http://127.0.0.1:3000. Video Studio opens in **Local** mode; no API key is needed.
+
+- Installing on a Windows PC with an NVIDIA GPU: **[SETUP.md](SETUP.md)**
+- Stack details, folders, pinned versions and LAN access: [docs/DOCKER.md](docs/DOCKER.md)
+- Models: [`models.json`](models.json) (validated at startup); ComfyUI workflows: [`workflows/`](workflows/README.md)
+
+## Development
+
+```bash
+npm ci                         # Node 22+
+npm run dev                    # http://localhost:3000, data in ./.dev-data via .env.local
+npm run lint && npm run typecheck && npm test
+npm run build:packages && npm run build && E2E_PROD=1 npm run test:e2e
+```
+
+Without Docker, the studio can run Wan2GP directly from a local folder: set `WAN2GP_MODE=spawn`,
+`WAN2GP_DIR` and optionally `WAN2GP_PYTHON` in `.env.local`.
 
 > The rest of this README is the upstream documentation, kept for reference. It will be
 > replaced as Zellijfield AI's Docker setup lands.
