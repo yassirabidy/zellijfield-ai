@@ -26,6 +26,18 @@ const wan2gpBlock = z.object({
 // One value may feed several nodes (e.g. the same seed into two samplers).
 const nodeRefs = z.union([nodeRef, z.array(nodeRef).min(1)]).transform((v) => (Array.isArray(v) ? v : [v]));
 
+// Path relative to models/comfyui, without .. segments.
+const relPath = z.string().regex(/^[A-Za-z0-9._ -]+(\/[A-Za-z0-9._ -]+)*$/).refine((p) => !p.split('/').includes('..'), 'no .. segments');
+const comfyuiFileDownload = z.object({
+  file: relPath,
+  url: z.string().regex(/^https:\/\/huggingface\.co\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/resolve\/[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+$/, 'must be a huggingface.co resolve URL'),
+});
+const comfyuiRepoDownload = z.object({
+  dir: relPath,
+  repo: z.string().regex(/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/),
+  revision: z.string().regex(/^[A-Za-z0-9._-]+$/).default('main'),
+});
+
 const comfyuiBlock = z.object({
   // File name inside WORKFLOWS_DIR (API format).
   workflow: z.string().regex(/^[A-Za-z0-9._-]+\.json$/),
@@ -50,6 +62,9 @@ const comfyuiBlock = z.object({
   requiredNodes: z.array(z.string().min(1)).default([]),
   // Weight files relative to models/comfyui that must exist.
   requiredFiles: z.array(z.string().regex(/^[A-Za-z0-9._/ -]+$/)).default([]),
+  // Where the Models page downloads requiredFiles from: one Hugging Face file, or a whole
+  // Hugging Face repository into a folder. Only huggingface.co sources are accepted.
+  downloads: z.array(z.union([comfyuiFileDownload, comfyuiRepoDownload])).default([]),
 });
 
 const falBlock = z.object({ endpoint: z.string().regex(/^[a-z0-9-]+\/[A-Za-z0-9._/-]+$/) });
@@ -90,6 +105,12 @@ export const modelSchema = z
         if (!resolutions[ratio]) {
           ctx.addIssue({ code: 'custom', message: `aspect ratio ${ratio} has no resolution`, path: ['aspectRatios'] });
         }
+      }
+    }
+    for (const d of m.comfyui?.downloads ?? []) {
+      const target = 'file' in d ? d.file : d.dir;
+      if (!m.comfyui!.requiredFiles.includes(target)) {
+        ctx.addIssue({ code: 'custom', message: `download target ${target} is not in requiredFiles`, path: ['comfyui', 'downloads'] });
       }
     }
   });

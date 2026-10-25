@@ -14,6 +14,8 @@ const envSchema = z.object({
   DEFAULT_BACKEND: backendId.default('mock'),
   WAN2GP_MCP_URL: z.string().default('http://127.0.0.1:7866/mcp'),
   COMFYUI_URL: z.string().default('http://127.0.0.1:8188'),
+  // Model download/remove service in the wan2gp container (docker/wan2gp/zf_model_server.py).
+  WAN2GP_TOOLS_URL: z.string().url().default('http://127.0.0.1:7867'),
   // Non-Docker only: run `wgp.py --process` from a local Wan2GP folder instead of MCP.
   WAN2GP_MODE: z.enum(['mcp', 'spawn']).default('mcp'),
   WAN2GP_DIR: z.string().default(''),
@@ -34,6 +36,7 @@ export interface ServerEnv {
   defaultBackend: BackendId;
   wan2gpMcpUrl: string;
   comfyuiUrl: string;
+  wan2gpToolsUrl: string;
   wan2gpMode: 'mcp' | 'spawn';
   wan2gpDir: string;
   wan2gpPython: string;
@@ -52,6 +55,7 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     defaultBackend: e.DEFAULT_BACKEND,
     wan2gpMcpUrl: e.WAN2GP_MCP_URL,
     comfyuiUrl: e.COMFYUI_URL,
+    wan2gpToolsUrl: e.WAN2GP_TOOLS_URL,
     wan2gpMode: e.WAN2GP_MODE,
     wan2gpDir: e.WAN2GP_DIR,
     wan2gpPython: e.WAN2GP_PYTHON,

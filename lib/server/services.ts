@@ -5,6 +5,8 @@ import { createMockAdapter } from './adapters/mock';
 import type { Adapter, ModelStatus } from './adapters/types';
 import { createWan2gpAdapter } from './adapters/wan2gp';
 import { getDb } from './db';
+import type { DownloadManager } from './downloads';
+import { createDownloadManager } from './downloads';
 import { getEnv } from './env';
 import { JobQueue } from './jobs';
 import type { ModelEntry } from './registry';
@@ -18,6 +20,7 @@ import { resolveUpload } from './uploads';
 interface Services {
   adapters: Partial<Record<ModelEntry['backend'], Adapter>>;
   queue: JobQueue;
+  downloads: DownloadManager;
   uploadsDir: string;
 }
 
@@ -48,7 +51,13 @@ function build(): Services {
     outputsDir: env.outputsDir,
     resolveUpload: (id) => resolveUpload(uploadsDir, id),
   });
-  return { adapters, queue, uploadsDir };
+  const downloads = createDownloadManager({
+    comfyuiDir: path.join(env.modelsDir, 'comfyui'),
+    getToolsUrl: () => env.wan2gpToolsUrl,
+    getModels: () => getRegistry().models,
+    isBusy: (modelId) => queue.list(200).some((j) => j.modelId === modelId && (j.status === 'queued' || j.status === 'running')),
+  });
+  return { adapters, queue, downloads, uploadsDir };
 }
 
 const globalForServices = globalThis as unknown as { __zfServices?: Services };
