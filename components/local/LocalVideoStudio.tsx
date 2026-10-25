@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GalleryItem, Job, ModelInfo } from '@/lib/client/api';
-import { api, mediaUrl, TERMINAL, watchJob } from '@/lib/client/api';
+import { api, LOCAL_BACKENDS, mediaUrl, TERMINAL, watchJob } from '@/lib/client/api';
 import StatusBadge from './StatusBadge';
 
 const BACKEND_LABEL: Record<ModelInfo['backend'], string> = {
@@ -15,6 +15,8 @@ const BACKEND_LABEL: Record<ModelInfo['backend'], string> = {
 };
 
 interface Props {
+  // Which local models to offer.
+  mediaType?: ModelInfo['type'];
   onGenerationStart?: () => void;
   onGenerationEnd?: () => void;
   onGenerationComplete?: (data: { url: string }) => void;
@@ -61,7 +63,7 @@ function FilePicker({ label, accept, required, uploading, fileName, onPick, onCl
   );
 }
 
-export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, onGenerationComplete, onGenerationError }: Props) {
+export default function LocalVideoStudio({ mediaType = 'video', onGenerationStart, onGenerationEnd, onGenerationComplete, onGenerationError }: Props) {
   const [models, setModels] = useState<ModelInfo[] | null>(null);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelId, setModelId] = useState<string>('');
@@ -86,7 +88,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
     setLoadingModels(true);
     try {
       const [all, settings] = await Promise.all([api.models(), api.settings().catch(() => null)]);
-      const list = all.filter((m) => m.type === 'video');
+      const list = all.filter((m) => m.type === mediaType && LOCAL_BACKENDS.includes(m.backend));
       setModels(list);
       // First choice: keep the current selection, else the first model of the default backend.
       const preferred = list.find((m) => m.backend === settings?.defaultBackend) ?? list[0];
@@ -96,7 +98,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
     } finally {
       setLoadingModels(false);
     }
-  }, []);
+  }, [mediaType]);
 
   const loadGallery = useCallback(() => {
     api.gallery().then((items) => setGallery(items.slice(0, 12))).catch(() => {});
@@ -175,7 +177,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
   const resultUrl = job?.status === 'succeeded' && job.outputPath ? mediaUrl(job.outputPath) : null;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden md:flex-row" data-testid="local-video-studio">
+    <div className="flex h-full w-full flex-col overflow-hidden md:flex-row" data-testid="local-video-studio" data-media-type={mediaType}>
       {/* Controls */}
       <aside className="flex w-full flex-shrink-0 flex-col gap-5 overflow-y-auto border-b border-white/[0.06] bg-[#0a0a0b] p-5 md:w-[380px] md:border-b-0 md:border-r">
         <div>
@@ -227,7 +229,7 @@ export default function LocalVideoStudio({ onGenerationStart, onGenerationEnd, o
             onChange={(e) => setPrompt(e.target.value)}
             rows={5}
             maxLength={4000}
-            placeholder="Describe the shot: subject, action, camera, light…"
+            placeholder={mediaType === 'video' ? 'Describe the shot: subject, action, camera, light…' : 'Describe the image: subject, style, composition, light…'}
             className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[13px] text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none"
           />
         </div>

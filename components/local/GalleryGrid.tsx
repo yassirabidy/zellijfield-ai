@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import type { GalleryItem } from '@/lib/client/api';
 import { api } from '@/lib/client/api';
 
-export default function GalleryGrid() {
+// embedded: rendered inside the Local dashboard (no page header).
+export default function GalleryGrid({ embedded = false }: { embedded?: boolean }) {
   const [items, setItems] = useState<GalleryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<GalleryItem | null>(null);
@@ -15,14 +16,16 @@ export default function GalleryGrid() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white">
+    <div className={embedded ? 'h-full overflow-y-auto bg-[#030303] text-white' : 'min-h-screen bg-[#030303] text-white'}>
+      {!embedded && (
       <header className="flex h-14 items-center justify-between border-b border-white/[0.05] bg-[#0a0a0b]/80 px-5">
         <div className="flex items-center gap-3">
-          <Link href="/studio/video" className="text-[13px] text-white/60 hover:text-white">← Studio</Link>
+          <Link href="/local/video" className="text-[13px] text-white/60 hover:text-white">← Studio</Link>
           <span className="text-sm font-bold">Gallery</span>
         </div>
-        <Link href="/settings" className="text-[13px] text-white/60 hover:text-white">Settings</Link>
+        <Link href="/local/settings" className="text-[13px] text-white/60 hover:text-white">Settings</Link>
       </header>
+      )}
       <main className="mx-auto max-w-7xl px-4 py-8">
         {error && <p role="alert" className="text-[13px] text-red-300">{error}</p>}
         {items === null && !error && <p className="text-[13px] text-white/40">Loading…</p>}

@@ -28,7 +28,11 @@ function Card({ title, children, description }: { title: string; description?: s
 
 const inputClass = 'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[13px] text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none';
 
-export default function SettingsPanel() {
+export type SettingsSection = 'backends' | 'models' | 'keys';
+
+// embedded: rendered inside a dashboard (no page header). sections: which cards to show.
+export default function SettingsPanel({ embedded = false, sections = ['backends', 'models', 'keys'] }: { embedded?: boolean; sections?: SettingsSection[] }) {
+  const show = (s: SettingsSection) => sections.includes(s);
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [wan2gpUrl, setWan2gpUrl] = useState('');
   const [comfyuiUrl, setComfyuiUrl] = useState('');
@@ -58,7 +62,8 @@ export default function SettingsPanel() {
 
   useEffect(() => {
     api.settings().then(apply).catch((err) => setMessage({ kind: 'error', text: (err as Error).message }));
-    void checkModels();
+    if (sections.includes('models')) void checkModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkModels]);
 
   const saveBackends = async () => {
@@ -95,14 +100,16 @@ export default function SettingsPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white">
+    <div className={embedded ? 'h-full overflow-y-auto bg-[#030303] text-white' : 'min-h-screen bg-[#030303] text-white'}>
+      {!embedded && (
       <header className="flex h-14 items-center justify-between border-b border-white/[0.05] bg-[#0a0a0b]/80 px-5">
         <div className="flex items-center gap-3">
-          <Link href="/studio/video" className="text-[13px] text-white/60 hover:text-white">← Studio</Link>
+          <Link href="/studio" className="text-[13px] text-white/60 hover:text-white">← Cloud studio</Link>
           <span className="text-sm font-bold">Settings</span>
         </div>
-        <Link href="/gallery" className="text-[13px] text-white/60 hover:text-white">Gallery</Link>
       </header>
+      )}
+
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
         {message && (
@@ -112,6 +119,7 @@ export default function SettingsPanel() {
           </div>
         )}
 
+        {show('backends') && (
         <Card title="Local backends" description="Inside Docker these point at the compose services. Change them only to use a Wan2GP or ComfyUI running elsewhere on your network.">
           <div className="grid gap-4">
             <label className="block text-[12px] font-semibold text-white/60">
@@ -140,7 +148,9 @@ export default function SettingsPanel() {
             </div>
           </div>
         </Card>
+        )}
 
+        {show('models') && (
         <Card title="Models" description="Status of every model in models.json. Wan2GP downloads missing weights on first use; ComfyUI models need their files in models/comfyui.">
           {models === null ? (
             <p className="text-[13px] text-white/40">Checking…</p>
@@ -159,7 +169,9 @@ export default function SettingsPanel() {
             </ul>
           )}
         </Card>
+        )}
 
+        {show('keys') && (
         <Card title="API keys" description="Keys are stored in this machine's data folder and used only by the server. They are never shown again, sent to the browser, or written to logs.">
           <div className="grid gap-5">
             {(Object.keys(KEY_INFO) as KeyName[]).map((name) => (
@@ -185,6 +197,7 @@ export default function SettingsPanel() {
             ))}
           </div>
         </Card>
+        )}
       </main>
     </div>
   );

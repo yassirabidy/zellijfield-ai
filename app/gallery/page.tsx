@@ -1,9 +1,6 @@
-import GalleryGrid from '@/components/local/GalleryGrid';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Gallery — Zellijfield AI',
-};
-
+// The gallery lives in the Local dashboard.
 export default function GalleryPage() {
-  return <GalleryGrid />;
+  redirect('/local/gallery');
 }

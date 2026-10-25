@@ -20,6 +20,9 @@ export interface ModelInfo {
   availability: { status: Availability; detail?: string };
 }
 
+// Backends that run on this PC; the Local dashboard shows only these.
+export const LOCAL_BACKENDS: ReadonlyArray<ModelInfo['backend']> = ['mock', 'wan2gp', 'comfyui'];
+
 export interface JobInput {
   modelId: string;
   prompt: string;
@@ -88,6 +91,8 @@ const json = (method: string, data: unknown): RequestInit => ({
 
 export const api = {
   models: () => request<{ models: ModelInfo[] }>('/api/models').then((r) => r.models),
+  // Registry only, without live status checks (instant).
+  registry: () => request<{ models: Omit<ModelInfo, 'availability'>[] }>('/api/models?status=0').then((r) => r.models),
   settings: () => request<PublicSettings>('/api/settings'),
   // wan2gpUrl / comfyuiUrl: null resets to the server default.
   saveSettings: (update: { wan2gpUrl?: string | null; comfyuiUrl?: string | null; defaultBackend?: string; keys?: Partial<Record<keyof PublicSettings['keys'], string>> }) =>
