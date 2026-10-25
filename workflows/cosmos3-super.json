@@ -1,0 +1,222 @@
+{
+  "1": {
+    "class_type": "Cosmos3Loader",
+    "inputs": {
+      "model_dir": "Cosmos3-Super-Image2Video",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Cosmos3 Loader (Super)"
+    }
+  },
+  "2": {
+    "class_type": "Cosmos3TextEncode",
+    "inputs": {
+      "prompt": "A robotic arm picks up a ceramic plate from a kitchen sink and wipes it with a yellow sponge, water droplets glistening.",
+      "width": 832,
+      "height": 480,
+      "num_frames": 93,
+      "fps": 16,
+      "add_resolution_template": true,
+      "add_duration_template": true,
+      "text_encoder": [
+        "1",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Positive Prompt"
+    }
+  },
+  "3": {
+    "class_type": "Cosmos3DefaultNegativePrompt",
+    "inputs": {
+      "text_encoder": [
+        "1",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Cosmos3 Default Negative Prompt"
+    }
+  },
+  "4": {
+    "class_type": "Cosmos3TextEncode",
+    "inputs": {
+      "prompt": [
+        "3",
+        0
+      ],
+      "width": 832,
+      "height": 480,
+      "num_frames": 93,
+      "fps": 16,
+      "add_resolution_template": true,
+      "add_duration_template": true,
+      "text_encoder": [
+        "1",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Negative Prompt"
+    }
+  },
+  "6": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 6,
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "15",
+        0
+      ],
+      "negative": [
+        "15",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "7": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 123
+    },
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "8": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "uni_pc_bh2"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "9": {
+    "class_type": "Cosmos3Scheduler",
+    "inputs": {
+      "steps": 35,
+      "flow_shift": 5,
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "Cosmos3 Scheduler (UniPC sigmas)"
+    }
+  },
+  "10": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "7",
+        0
+      ],
+      "guider": [
+        "6",
+        0
+      ],
+      "sampler": [
+        "8",
+        0
+      ],
+      "sigmas": [
+        "9",
+        0
+      ],
+      "latent_image": [
+        "15",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "11": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "10",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "12": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": 16,
+      "images": [
+        "11",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Create Video"
+    }
+  },
+  "13": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "video": [
+        "12",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Save Video"
+    }
+  },
+  "14": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "15": {
+    "class_type": "Cosmos3ImageToVideo",
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "length": 93,
+      "batch_size": 1,
+      "positive": [
+        "2",
+        0
+      ],
+      "negative": [
+        "4",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ],
+      "image": [
+        "14",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Cosmos3 Image to Video"
+    }
+  }
+}
