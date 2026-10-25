@@ -59,6 +59,9 @@ services:
         INSTALL_SAGEATTENTION: ${ZF_WAN2GP_SAGEATTENTION:-1}
         MAX_JOBS: ${ZF_BUILD_JOBS:-2}
     image: zellijfield-ai/wan2gp:${ZF_IMAGE_TAG:-local}
+    # Extra wgp.py flags (argument list, never shell-evaluated). Memory profile: 4 = Wan2GP default,
+    # 5 = fail-safe for PCs short of RAM/VRAM (see SETUP.md, "Out of memory").
+    command: ["--profile", "${ZF_WAN2GP_PROFILE:-4}"]
     expose:
       - "7866"
     shm_size: "8gb"
