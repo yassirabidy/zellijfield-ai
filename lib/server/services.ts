@@ -7,6 +7,8 @@ import { createWan2gpAdapter } from './adapters/wan2gp';
 import { getDb } from './db';
 import type { DownloadManager } from './downloads';
 import { createDownloadManager } from './downloads';
+import type { EngineManager } from './engines';
+import { createEngineManager } from './engines';
 import { getEnv } from './env';
 import { JobQueue } from './jobs';
 import type { ModelEntry } from './registry';
@@ -21,6 +23,7 @@ interface Services {
   adapters: Partial<Record<ModelEntry['backend'], Adapter>>;
   queue: JobQueue;
   downloads: DownloadManager;
+  engines: EngineManager;
   uploadsDir: string;
 }
 
@@ -51,13 +54,15 @@ function build(): Services {
     outputsDir: env.outputsDir,
     resolveUpload: (id) => resolveUpload(uploadsDir, id),
   });
+  const engines = createEngineManager({ dir: path.join(env.dataDir, 'engines') });
   const downloads = createDownloadManager({
+    engines,
     comfyuiDir: path.join(env.modelsDir, 'comfyui'),
     getToolsUrl: () => env.wan2gpToolsUrl,
     getModels: () => getRegistry().models,
     isBusy: (modelId) => queue.list(200).some((j) => j.modelId === modelId && (j.status === 'queued' || j.status === 'running')),
   });
-  return { adapters, queue, downloads, uploadsDir };
+  return { adapters, queue, downloads, engines, uploadsDir };
 }
 
 const globalForServices = globalThis as unknown as { __zfServices?: Services };

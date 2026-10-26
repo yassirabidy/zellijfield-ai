@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ClientError } from './http';
+import type { EngineAction, EngineId, EngineState } from './engines';
 import type { ModelEntry } from './registry';
 
 // Downloads and removes local model weights from the Models page.
@@ -13,7 +14,8 @@ import type { ModelEntry } from './registry';
 //   (docker/wan2gp/zf_model_server.py), so the files are exactly those a generation would fetch.
 // Sources come only from models.json; the browser just names a model id.
 
-export type DownloadStatus = 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled';
+// waiting-engine: the model's engine is being installed or started first (engine manager).
+export type DownloadStatus = 'waiting-engine' | 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled';
 
 export interface DownloadState {
   modelId: string;
@@ -60,6 +62,13 @@ export interface DownloadManagerOptions {
   // True while the model has queued or running jobs.
   isBusy: (modelId: string) => boolean;
   fetchImpl?: typeof fetch;
+  // Engine manager: lets a download install or start the model's engine first.
+  engines?: {
+    snapshot: () => { managerOnline: boolean; engines: EngineState[] };
+    request: (id: EngineId, action: EngineAction) => void;
+  };
+  // How often a waiting download checks whether its engine is ready.
+  engineCheckMs?: number;
   // Attempts per step for ComfyUI downloads, and the base wait between them.
   retries?: number;
   retryDelayMs?: number;
@@ -109,10 +118,13 @@ function comfyTargets(model: ModelEntry): string[] {
 }
 
 export function createDownloadManager(input: DownloadManagerOptions) {
-  const options = { retries: 5, retryDelayMs: 3000, ...input };
+  const options = { retries: 5, retryDelayMs: 3000, engineCheckMs: 5000, ...input };
   const fetchImpl = options.fetchImpl ?? fetch;
   const root = options.comfyuiDir;
   const comfyStates = new Map<string, DownloadState>();
+  // Wan2GP downloads waiting for the engine to be installed / started.
+  const waiting = new Map<string, DownloadState>();
+  let waitTimer: NodeJS.Timeout | null = null;
   let active: { modelId: string; controller: AbortController } | null = null;
 
   function localModel(id: string): ModelEntry {
@@ -128,7 +140,7 @@ export function createDownloadManager(input: DownloadManagerOptions) {
     try {
       res = await fetchImpl(new URL(pathname, options.getToolsUrl()), { ...init, signal: AbortSignal.timeout(timeoutMs) });
     } catch {
-      throw new ClientError('Wan2GP is not running. Start it with the "wan2gp" or "full" profile, then try again.');
+      throw Object.assign(new ClientError('Wan2GP is not running. Start it with the "wan2gp" or "full" profile, then try again.'), { unreachable: true });
     }
     return { status: res.status, body: (await res.json().catch(() => ({}))) as T };
   }
@@ -265,6 +277,49 @@ export function createDownloadManager(input: DownloadManagerOptions) {
     return { present, total: comfyTargets(model).length, bytes, partialBytes };
   }
 
+  // ---- engines ----
+
+  // Asks the engine manager to install (or start) an engine. Returns false when there is no
+  // manager to ask, so the caller reports the usual "not running" message.
+  function prepareEngine(id: EngineId, opts: { installOnly?: boolean } = {}): boolean {
+    const snap = options.engines?.snapshot();
+    if (!snap?.managerOnline) return false;
+    const engine = snap.engines.find((e) => e.id === id);
+    if (!engine) return false;
+    if (engine.busy || engine.op?.status === 'running') return true;
+    if (!engine.installed) options.engines!.request(id, 'install');
+    else if (!opts.installOnly && engine.container !== 'running') options.engines!.request(id, 'start');
+    return true;
+  }
+
+  function scheduleWait() {
+    if (waitTimer || waiting.size === 0) return;
+    waitTimer = setInterval(() => void waitTick(), options.engineCheckMs);
+    waitTimer.unref?.();
+  }
+
+  // Starts waiting Wan2GP downloads once the engine's model-tools service answers.
+  async function waitTick() {
+    const engine = options.engines?.snapshot().engines.find((e) => e.id === 'wan2gp');
+    for (const [modelId, state] of waiting) {
+      if (state.status === 'failed') continue;
+      if (engine?.op?.status === 'failed' && (engine.op.action === 'install' || engine.op.action === 'start')) {
+        Object.assign(state, { status: 'failed', error: `Wan2GP could not be ${engine.op.action === 'install' ? 'installed' : 'started'}: ${engine.op.error ?? 'see the engine manager'}` });
+        continue;
+      }
+      const ready = await tools('/health').then((r) => r.status === 200, () => false);
+      if (!ready) continue;
+      const model = options.getModels().find((m) => m.id === modelId);
+      const res = await tools<{ error?: string }>('/download', postJson({ model_type: model?.wan2gp?.modelType })).catch((err: Error) => ({ status: 0, body: { error: err.message } }));
+      if (res.status === 202) waiting.delete(modelId);
+      else if (res.status !== 409) Object.assign(state, { status: 'failed', error: res.body.error ?? `Wan2GP refused the download (HTTP ${res.status})` });
+    }
+    if ([...waiting.values()].every((s) => s.status === 'failed') && waitTimer) {
+      clearInterval(waitTimer);
+      waitTimer = null;
+    }
+  }
+
   // ---- public API ----
 
   async function overview(): Promise<ModelDownloadInfo[]> {
@@ -276,7 +331,8 @@ export function createDownloadManager(input: DownloadManagerOptions) {
     return Promise.all(
       models.map(async (m): Promise<ModelDownloadInfo> => {
         if (m.backend === 'wan2gp') {
-          return { modelId: m.id, backend: 'wan2gp', downloadable: true, download: wan2gp?.modelId === m.id ? wan2gp : null };
+          const pending = waiting.get(m.id);
+          return { modelId: m.id, backend: 'wan2gp', downloadable: true, download: pending ? { ...pending } : wan2gp?.modelId === m.id ? wan2gp : null };
         }
         const state = comfyStates.get(m.id);
         return {
@@ -293,11 +349,23 @@ export function createDownloadManager(input: DownloadManagerOptions) {
   async function start(modelId: string): Promise<void> {
     const model = localModel(modelId);
     if (model.backend === 'wan2gp') {
-      const res = await tools<{ error?: string }>('/download', postJson({ model_type: model.wan2gp!.modelType }));
+      let res: { status: number; body: { error?: string } };
+      try {
+        res = await tools<{ error?: string }>('/download', postJson({ model_type: model.wan2gp!.modelType }));
+      } catch (err) {
+        // Engine not running: install or start it first, then download (checked by waitTick).
+        if (!(err as { unreachable?: boolean }).unreachable || !prepareEngine('wan2gp')) throw err;
+        waiting.set(modelId, { modelId, status: 'waiting-engine' });
+        scheduleWait();
+        return;
+      }
       if (res.status !== 202) throw new ClientError(res.body.error ?? `Wan2GP refused the download (HTTP ${res.status})`);
+      waiting.delete(modelId);
       return;
     }
     if (!model.comfyui?.downloads.length) throw new ClientError('This model has no download source in models.json');
+    // ComfyUI files are fetched by the studio; install the engine alongside so the model can run.
+    prepareEngine('comfyui', { installOnly: true });
     if (active) throw new ClientError(`Another download is running (${active.modelId}); wait for it or cancel it first`);
     const controller = new AbortController();
     const state: DownloadState = { modelId, status: 'running', received: 0 };
@@ -309,6 +377,7 @@ export function createDownloadManager(input: DownloadManagerOptions) {
   async function cancel(modelId: string): Promise<void> {
     const model = localModel(modelId);
     if (model.backend === 'wan2gp') {
+      if (waiting.delete(modelId)) return;
       const res = await tools<{ error?: string }>('/download', { method: 'DELETE' });
       if (res.status !== 202) throw new ClientError(res.body.error ?? 'No download is running');
       return;
