@@ -9,6 +9,8 @@ export interface GenerationParams {
   frames?: number;
   // Absolute paths on the studio's disk, resolved server-side from upload ids.
   imagePath?: string;
+  // Last frame (models with inputs.endImage).
+  endImagePath?: string;
   audioPath?: string;
 }
 

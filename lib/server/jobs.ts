@@ -39,6 +39,7 @@ export const jobInputSchema = z
     steps: z.number().int().min(1).max(200).optional(),
     frames: z.number().int().min(1).max(2000).optional(),
     imageUploadId: uuid.optional(),
+    endImageUploadId: uuid.optional(),
     audioUploadId: uuid.optional(),
   })
   .strict();
@@ -47,11 +48,15 @@ export type JobInput = z.infer<typeof jobInputSchema>;
 
 // Checks the input against what the chosen model accepts. Returns an error message or null.
 export function validateForModel(input: JobInput, model: ModelEntry): string | null {
-  for (const kind of ['image', 'audio'] as const) {
-    const provided = Boolean(kind === 'image' ? input.imageUploadId : input.audioUploadId);
+  const inputs = [
+    ['image', input.imageUploadId, 'a start image'],
+    ['endImage', input.endImageUploadId, 'a last-frame image'],
+    ['audio', input.audioUploadId, 'an audio input'],
+  ] as const;
+  for (const [kind, provided, label] of inputs) {
     const mode = model.inputs[kind];
-    if (mode === 'required' && !provided) return `${model.name} needs an ${kind} input.`;
-    if (mode === 'none' && provided) return `${model.name} does not accept an ${kind} input.`;
+    if (mode === 'required' && !provided) return `${model.name} needs ${label}.`;
+    if (mode === 'none' && provided) return `${model.name} does not accept ${label}.`;
   }
   if (input.aspectRatio && model.aspectRatios.length > 0 && !model.aspectRatios.includes(input.aspectRatio)) {
     return `${model.name} supports ${model.aspectRatios.join(', ')} only.`;
@@ -142,7 +147,7 @@ export class JobQueue extends EventEmitter {
     const problem = validateForModel(input, model);
     if (problem) throw new JobInputError(problem);
     if (!this.opts.adapters[model.backend]) throw new JobInputError(`Backend "${model.backend}" is not available`);
-    for (const id of [input.imageUploadId, input.audioUploadId]) {
+    for (const id of [input.imageUploadId, input.endImageUploadId, input.audioUploadId]) {
       if (id && !this.opts.resolveUpload(id)) throw new JobInputError('Uploaded file not found — upload it again.');
     }
 
@@ -252,6 +257,7 @@ export class JobQueue extends EventEmitter {
         steps: p.steps,
         frames: p.frames,
         imagePath: p.imageUploadId ? this.opts.resolveUpload(p.imageUploadId) ?? undefined : undefined,
+        endImagePath: p.endImageUploadId ? this.opts.resolveUpload(p.endImageUploadId) ?? undefined : undefined,
         audioPath: p.audioUploadId ? this.opts.resolveUpload(p.audioUploadId) ?? undefined : undefined,
       };
       const result = await adapter.generate({

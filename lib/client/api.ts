@@ -13,7 +13,8 @@ export interface ModelInfo {
   type: 'video' | 'image';
   backend: 'mock' | 'wan2gp' | 'comfyui' | 'fal' | 'replicate';
   experimental: boolean;
-  inputs: { image: InputMode; audio: InputMode };
+  // image = start frame, endImage = last frame.
+  inputs: { image: InputMode; endImage: InputMode; audio: InputMode };
   aspectRatios: string[];
   defaults: { steps?: number; frames?: number };
   todo: string[];
@@ -34,6 +35,7 @@ export interface JobInput {
   steps?: number;
   frames?: number;
   imageUploadId?: string;
+  endImageUploadId?: string;
   audioUploadId?: string;
 }
 

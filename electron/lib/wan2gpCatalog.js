@@ -108,7 +108,7 @@ function toInt(value) {
 // Only fields the user actually chose are set; everything else falls back to the
 // model's own defaults in Wan2GP, which are tuned per model (distilled models use
 // few steps, LTX has its own frame count, etc.).
-function buildWan2gpSettings(model, params = {}, { imageStart } = {}) {
+function buildWan2gpSettings(model, params = {}, { imageStart, imageEnd } = {}) {
     if (!model?.modelType) throw new Error('Unknown Wan2GP model');
     if (model.needsImage && !imageStart) {
         throw new Error(`${model.name} requires a start-frame image — upload one first.`);
@@ -133,6 +133,7 @@ function buildWan2gpSettings(model, params = {}, { imageStart } = {}) {
     settings.seed = seed !== null && seed >= 0 ? seed : Math.floor(Math.random() * 2147483647);
 
     if (imageStart) settings.image_start = imageStart;
+    if (imageEnd) settings.image_end = imageEnd;
     return settings;
 }
 

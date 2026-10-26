@@ -56,8 +56,9 @@ function imageMime(filePath: string): string {
 }
 
 // The JS builder always sets model_type, prompt and seed.
-function buildSettings(req: GenerateRequest, imageStart: string | undefined): Wan2gpSettings {
-  return buildWan2gpSettings(catalogModel(req.model), settingsParams(req), { imageStart }) as unknown as Wan2gpSettings;
+// image_start / image_end: WanGP's API infers image_prompt_type (S, E) from them (shared/api.py).
+function buildSettings(req: GenerateRequest, imageStart: string | undefined, imageEnd: string | undefined): Wan2gpSettings {
+  return buildWan2gpSettings(catalogModel(req.model), settingsParams(req), { imageStart, imageEnd }) as unknown as Wan2gpSettings;
 }
 
 function mediaType(filePath: string): 'video' | 'image' {
@@ -94,13 +95,15 @@ export function createWan2gpAdapter(options: Wan2gpAdapterOptions): Adapter {
     req.signal.addEventListener('abort', onAbort, { once: true });
     try {
       req.onProgress({ progress: 0, status: 'starting', message: 'Sending job to Wan2GP' });
-      let imageStart: string | undefined;
-      if (req.params.imagePath) {
-        const bytes = await fs.readFile(req.params.imagePath);
-        imageStart = await client.uploadImage({ name: path.basename(req.params.imagePath), bytes, mime: imageMime(req.params.imagePath) });
-      }
+      const uploadImage = async (filePath: string | undefined) => {
+        if (!filePath) return undefined;
+        const bytes = await fs.readFile(filePath);
+        return client.uploadImage({ name: path.basename(filePath), bytes, mime: imageMime(filePath) }) as Promise<string>;
+      };
+      const imageStart = await uploadImage(req.params.imagePath);
+      const imageEnd = await uploadImage(req.params.endImagePath);
       throwIfAborted(req.signal);
-      const settings = buildSettings(req, imageStart);
+      const settings = buildSettings(req, imageStart, imageEnd);
       const item = await client.generate(settings, {
         onProgress: (e: Parameters<typeof toProgress>[0]) => req.onProgress(toProgress(e)),
         onJobId: (id: string) => { wanJobId = id; },
@@ -125,7 +128,7 @@ export function createWan2gpAdapter(options: Wan2gpAdapterOptions): Adapter {
     const install = wan2gpLocal.resolveInstall({ dir: options.dir, python: options.python });
     const check = wan2gpLocal.checkInstall(install);
     if (!check.ok) throw new Error(check.error);
-    const settings = buildSettings(req, req.params.imagePath);
+    const settings = buildSettings(req, req.params.imagePath, req.params.endImagePath);
     const runDir = path.join(req.outputDir, '.runs', req.jobId);
     await fs.mkdir(runDir, { recursive: true });
     const { child, done } = wan2gpLocal.runGeneration({

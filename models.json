@@ -26,14 +26,14 @@
       "type": "video",
       "backend": "wan2gp",
       "inputs": {
-        "image": "none",
+        "image": "optional",
+        "endImage": "optional",
         "audio": "none"
       },
       "wan2gp": {
         "modelType": "minimax_h3_fl2va_pruned"
       },
       "todo": [
-        "First/last-frame inputs: confirm the Wan2GP settings keys for FL2VA before enabling image input.",
         "No default resolution in defaults/minimax_h3_fl2va_pruned.json; Wan2GP's own default is used."
       ],
       "downloadSize": 51888555786
@@ -46,7 +46,8 @@
       "type": "video",
       "backend": "wan2gp",
       "inputs": {
-        "image": "none",
+        "image": "optional",
+        "endImage": "optional",
         "audio": "none"
       },
       "aspectRatios": [
@@ -62,9 +63,6 @@
           "16:9": "1280x704"
         }
       },
-      "todo": [
-        "Start/end image inputs: confirm the Wan2GP settings keys for LTX-2.5 before enabling image input."
-      ],
       "downloadSize": 41332031011
     },
     {
@@ -102,6 +100,7 @@
       "backend": "wan2gp",
       "inputs": {
         "image": "required",
+        "endImage": "optional",
         "audio": "none"
       },
       "aspectRatios": [

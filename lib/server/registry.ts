@@ -82,7 +82,10 @@ export const modelSchema = z
     type: z.enum(['video', 'image']),
     backend: z.enum(['mock', 'wan2gp', 'comfyui', 'fal', 'replicate']),
     experimental: z.boolean().default(false),
-    inputs: z.object({ image: inputMode.default('none'), audio: inputMode.default('none') }).default({ image: 'none', audio: 'none' }),
+    // image = start frame, endImage = last frame.
+    inputs: z
+      .object({ image: inputMode.default('none'), endImage: inputMode.default('none'), audio: inputMode.default('none') })
+      .default({ image: 'none', endImage: 'none', audio: 'none' }),
     aspectRatios: z.array(aspectRatio).default([]),
     defaults: z
       .object({ steps: z.number().int().positive().optional(), frames: z.number().int().positive().optional() })
