@@ -1,5 +1,8 @@
 # Zellijfield AI — setup on a Windows PC with an NVIDIA GPU
 
+Installing with an AI assistant? Give it [CLIENT_INSTALL.md](CLIENT_INSTALL.md): the same install as
+step-by-step instructions with checks.
+
 This guide installs Zellijfield AI on a Windows 10/11 PC and runs local video generation on its
 NVIDIA GPU with Docker. Allow half a day for the first install: most of it is downloading.
 
