@@ -1,4 +1,4 @@
-# Zellijfield AI — install guide for an AI assistant
+# Zellijfield AI Setup
 
 This file is written for an AI assistant (Claude, ChatGPT, …) that installs and starts Zellijfield AI
 on a Windows PC, working together with the person at that PC. Follow the steps **in order**. After each
