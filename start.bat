@@ -18,6 +18,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+rem Engine manager: lets the dashboard install, start, stop and delete the GPU engines
+rem (scripts\engine-manager.ps1). It exits on its own if one is already running.
+start "Zellijfield AI engine manager" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0scripts\engine-manager.ps1"
+
 echo.
 echo Building and starting the "%ZF_PROFILE%" stack (the first GPU build can take 30-60 minutes)...
 docker compose --profile %ZF_PROFILE% up -d --build
