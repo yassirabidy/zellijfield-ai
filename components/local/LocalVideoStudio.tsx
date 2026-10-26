@@ -373,11 +373,13 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
                 <PromptChevronIcon />
               </button>
               {menu === 'model' && (
-                <PromptPopover className="w-[calc(100vw-2rem)] max-w-md md:w-[440px]">
+                <PromptPopover className="w-[calc(100vw-2rem)] max-w-md overflow-x-hidden md:w-[460px]">
                   <PromptPopoverHeader>Local models</PromptPopoverHeader>
                   <PromptMenuList>
                     {models?.map((m) => (
-                      <div key={m.id} className="flex items-center gap-2" data-testid={`model-${m.id}`}>
+                      <div key={m.id} className="flex min-w-0 items-center gap-2" data-testid={`model-${m.id}`}>
+                        {/* The name shrinks (ellipsis, full name on hover); the badge keeps its size. */}
+                        <div className="min-w-0 flex-1" title={m.name}>
                         <PromptMenuItem
                           selected={m.id === modelId}
                           description={`${BACKEND_LABEL[m.backend]}${m.experimental ? ' · experimental' : ''}`}
@@ -388,7 +390,8 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
                         >
                           {m.name}
                         </PromptMenuItem>
-                        <StatusBadge status={m.availability.status} detail={m.availability.detail} />
+                        </div>
+                        <span className="flex-shrink-0"><StatusBadge status={m.availability.status} detail={m.availability.detail} /></span>
                       </div>
                     ))}
                   </PromptMenuList>
