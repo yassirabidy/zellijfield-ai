@@ -21,7 +21,7 @@
     {
       "id": "minimax-h3",
       "name": "MiniMax H3 FL2VA 20B (pruned)",
-      "description": "Video with synchronized stereo audio from text. Served by Wan2GP.",
+      "description": "Video with synchronized stereo audio from text, a first frame, a last frame, or both. Served by Wan2GP.",
       "family": "minimax",
       "type": "video",
       "backend": "wan2gp",
@@ -36,12 +36,105 @@
       "todo": [
         "No default resolution in defaults/minimax_h3_fl2va_pruned.json; Wan2GP's own default is used."
       ],
-      "downloadSize": 51888555786
+      "downloadSize": 51888555786,
+      "video": {
+        "fps": 24,
+        "frames": {
+          "min": 107,
+          "step": 17,
+          "offset": 5,
+          "max": 737
+        },
+        "sizes": [
+          {
+            "quality": "480p",
+            "ratio": "16:9",
+            "size": "832x480"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "16:9",
+            "size": "1920x1088"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "9:16",
+            "size": "1088x1920"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "1:1",
+            "size": "1440x1440"
+          },
+          {
+            "quality": "720p",
+            "ratio": "16:9",
+            "size": "1280x704"
+          },
+          {
+            "quality": "720p",
+            "ratio": "9:16",
+            "size": "704x1280"
+          },
+          {
+            "quality": "720p",
+            "ratio": "4:3",
+            "size": "1088x832"
+          },
+          {
+            "quality": "720p",
+            "ratio": "3:4",
+            "size": "832x1088"
+          },
+          {
+            "quality": "720p",
+            "ratio": "1:1",
+            "size": "1024x1024"
+          },
+          {
+            "quality": "540p",
+            "ratio": "16:9",
+            "size": "960x544"
+          },
+          {
+            "quality": "540p",
+            "ratio": "9:16",
+            "size": "544x960"
+          },
+          {
+            "quality": "480p",
+            "ratio": "9:16",
+            "size": "480x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "4:3",
+            "size": "832x608"
+          },
+          {
+            "quality": "480p",
+            "ratio": "3:4",
+            "size": "608x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "1:1",
+            "size": "704x704"
+          }
+        ]
+      },
+      "aspectRatios": [
+        "16:9",
+        "9:16",
+        "1:1",
+        "4:3",
+        "3:4"
+      ]
     },
     {
       "id": "ltx-2.5",
       "name": "LTX-2.5 Distilled 22B",
-      "description": "Video and sound from text, 8 steps, 1280x704. Served by Wan2GP.",
+      "description": "Video and sound from text, with optional start and end images. 8 steps. Served by Wan2GP.",
       "family": "ltx",
       "type": "video",
       "backend": "wan2gp",
@@ -51,19 +144,106 @@
         "audio": "none"
       },
       "aspectRatios": [
-        "16:9"
+        "16:9",
+        "9:16",
+        "1:1",
+        "4:3",
+        "3:4"
       ],
       "defaults": {
         "steps": 8,
         "frames": 241
       },
       "wan2gp": {
-        "modelType": "ltx2_25_22B_distilled",
-        "resolutions": {
-          "16:9": "1280x704"
-        }
+        "modelType": "ltx2_25_22B_distilled"
       },
-      "downloadSize": 41332031011
+      "downloadSize": 41332031011,
+      "video": {
+        "fps": 24,
+        "frames": {
+          "min": 17,
+          "step": 8,
+          "offset": 1,
+          "max": 737
+        },
+        "sizes": [
+          {
+            "quality": "720p",
+            "ratio": "16:9",
+            "size": "1280x704"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "16:9",
+            "size": "1920x1088"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "9:16",
+            "size": "1088x1920"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "1:1",
+            "size": "1408x1408"
+          },
+          {
+            "quality": "720p",
+            "ratio": "9:16",
+            "size": "704x1280"
+          },
+          {
+            "quality": "720p",
+            "ratio": "4:3",
+            "size": "1088x832"
+          },
+          {
+            "quality": "720p",
+            "ratio": "3:4",
+            "size": "832x1088"
+          },
+          {
+            "quality": "720p",
+            "ratio": "1:1",
+            "size": "1024x1024"
+          },
+          {
+            "quality": "540p",
+            "ratio": "16:9",
+            "size": "960x512"
+          },
+          {
+            "quality": "540p",
+            "ratio": "9:16",
+            "size": "512x960"
+          },
+          {
+            "quality": "480p",
+            "ratio": "16:9",
+            "size": "832x448"
+          },
+          {
+            "quality": "480p",
+            "ratio": "9:16",
+            "size": "448x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "4:3",
+            "size": "832x576"
+          },
+          {
+            "quality": "480p",
+            "ratio": "3:4",
+            "size": "576x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "1:1",
+            "size": "704x704"
+          }
+        ]
+      }
     },
     {
       "id": "wan-2.2-t2v",
@@ -79,17 +259,103 @@
       "aspectRatios": [
         "16:9",
         "9:16",
-        "1:1"
+        "1:1",
+        "4:3",
+        "3:4"
       ],
       "wan2gp": {
-        "modelType": "t2v_2_2",
-        "resolutions": {
-          "16:9": "832x480",
-          "9:16": "480x832",
-          "1:1": "720x720"
-        }
+        "modelType": "t2v_2_2"
       },
-      "downloadSize": 39984317608
+      "downloadSize": 39984317608,
+      "video": {
+        "fps": 16,
+        "frames": {
+          "min": 5,
+          "step": 4,
+          "offset": 1,
+          "max": 737
+        },
+        "sizes": [
+          {
+            "quality": "480p",
+            "ratio": "16:9",
+            "size": "832x480"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "16:9",
+            "size": "1920x1088"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "9:16",
+            "size": "1088x1920"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "1:1",
+            "size": "1440x1440"
+          },
+          {
+            "quality": "720p",
+            "ratio": "16:9",
+            "size": "1280x720"
+          },
+          {
+            "quality": "720p",
+            "ratio": "9:16",
+            "size": "720x1280"
+          },
+          {
+            "quality": "720p",
+            "ratio": "4:3",
+            "size": "1104x832"
+          },
+          {
+            "quality": "720p",
+            "ratio": "3:4",
+            "size": "832x1104"
+          },
+          {
+            "quality": "720p",
+            "ratio": "1:1",
+            "size": "1024x1024"
+          },
+          {
+            "quality": "540p",
+            "ratio": "16:9",
+            "size": "960x544"
+          },
+          {
+            "quality": "540p",
+            "ratio": "9:16",
+            "size": "544x960"
+          },
+          {
+            "quality": "480p",
+            "ratio": "9:16",
+            "size": "480x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "4:3",
+            "size": "832x624"
+          },
+          {
+            "quality": "480p",
+            "ratio": "3:4",
+            "size": "624x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "1:1",
+            "size": "720x720"
+          }
+        ]
+      },
+      "defaults": {
+        "frames": 81
+      }
     },
     {
       "id": "wan-2.2-i2v",
@@ -106,17 +372,103 @@
       "aspectRatios": [
         "16:9",
         "9:16",
-        "1:1"
+        "1:1",
+        "4:3",
+        "3:4"
       ],
       "wan2gp": {
-        "modelType": "i2v_2_2",
-        "resolutions": {
-          "16:9": "832x480",
-          "9:16": "480x832",
-          "1:1": "720x720"
-        }
+        "modelType": "i2v_2_2"
       },
-      "downloadSize": 39987594416
+      "downloadSize": 39987594416,
+      "video": {
+        "fps": 16,
+        "frames": {
+          "min": 5,
+          "step": 4,
+          "offset": 1,
+          "max": 737
+        },
+        "sizes": [
+          {
+            "quality": "480p",
+            "ratio": "16:9",
+            "size": "832x480"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "16:9",
+            "size": "1920x1088"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "9:16",
+            "size": "1088x1920"
+          },
+          {
+            "quality": "1080p",
+            "ratio": "1:1",
+            "size": "1440x1440"
+          },
+          {
+            "quality": "720p",
+            "ratio": "16:9",
+            "size": "1280x720"
+          },
+          {
+            "quality": "720p",
+            "ratio": "9:16",
+            "size": "720x1280"
+          },
+          {
+            "quality": "720p",
+            "ratio": "4:3",
+            "size": "1104x832"
+          },
+          {
+            "quality": "720p",
+            "ratio": "3:4",
+            "size": "832x1104"
+          },
+          {
+            "quality": "720p",
+            "ratio": "1:1",
+            "size": "1024x1024"
+          },
+          {
+            "quality": "540p",
+            "ratio": "16:9",
+            "size": "960x544"
+          },
+          {
+            "quality": "540p",
+            "ratio": "9:16",
+            "size": "544x960"
+          },
+          {
+            "quality": "480p",
+            "ratio": "9:16",
+            "size": "480x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "4:3",
+            "size": "832x624"
+          },
+          {
+            "quality": "480p",
+            "ratio": "3:4",
+            "size": "624x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "1:1",
+            "size": "720x720"
+          }
+        ]
+      },
+      "defaults": {
+        "frames": 81
+      }
     },
     {
       "id": "hunyuan-video-1.5",
@@ -131,20 +483,55 @@
       },
       "aspectRatios": [
         "16:9",
-        "9:16"
+        "9:16",
+        "4:3",
+        "3:4",
+        "1:1"
       ],
       "defaults": {
         "steps": 30,
         "frames": 97
       },
       "wan2gp": {
-        "modelType": "hunyuan_1_5_480_t2v",
-        "resolutions": {
-          "16:9": "832x480",
-          "9:16": "480x832"
-        }
+        "modelType": "hunyuan_1_5_480_t2v"
       },
-      "downloadSize": 26169257400
+      "downloadSize": 26169257400,
+      "video": {
+        "fps": 24,
+        "frames": {
+          "min": 5,
+          "step": 4,
+          "offset": 1,
+          "max": 337
+        },
+        "sizes": [
+          {
+            "quality": "480p",
+            "ratio": "16:9",
+            "size": "832x480"
+          },
+          {
+            "quality": "480p",
+            "ratio": "9:16",
+            "size": "480x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "4:3",
+            "size": "832x624"
+          },
+          {
+            "quality": "480p",
+            "ratio": "3:4",
+            "size": "624x832"
+          },
+          {
+            "quality": "480p",
+            "ratio": "1:1",
+            "size": "720x720"
+          }
+        ]
+      }
     },
     {
       "id": "skyreels-v3",
@@ -242,9 +629,6 @@
       "comfyui": {
         "workflow": "cosmos3-super.json",
         "outputNode": "13",
-        "resolutions": {
-          "16:9": "832x480"
-        },
         "inputs": {
           "prompt": {
             "node": "2",
@@ -303,7 +687,11 @@
               "node": "15",
               "input": "height"
             }
-          ]
+          ],
+          "flowShift": {
+            "node": "9",
+            "input": "flow_shift"
+          }
         },
         "requiredNodes": [
           "Cosmos3Loader",
@@ -332,7 +720,30 @@
         "steps": 35,
         "frames": 93
       },
-      "downloadSize": 130637742385
+      "downloadSize": 130637742385,
+      "video": {
+        "fps": 16,
+        "frames": {
+          "min": 5,
+          "step": 4,
+          "offset": 1,
+          "max": 401
+        },
+        "sizes": [
+          {
+            "quality": "480p",
+            "ratio": "16:9",
+            "size": "832x480",
+            "flowShift": 5
+          },
+          {
+            "quality": "720p",
+            "ratio": "16:9",
+            "size": "1280x720",
+            "flowShift": 10
+          }
+        ]
+      }
     }
   ]
 }

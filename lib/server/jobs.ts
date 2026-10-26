@@ -8,6 +8,7 @@ import { CancelledError } from './adapters/types';
 import type { Database } from './db';
 import { ClientError } from './http';
 import type { ModelEntry } from './registry';
+import { fitFrames, pickSize, qualitySchema } from './registry';
 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
@@ -35,6 +36,7 @@ export const jobInputSchema = z
     prompt: z.string().trim().min(1, 'Prompt is required').max(4000),
     negativePrompt: z.string().trim().max(2000).optional(),
     aspectRatio: z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']).optional(),
+    quality: qualitySchema.optional(),
     seed: z.number().int().min(0).max(4_294_967_295).optional(),
     steps: z.number().int().min(1).max(200).optional(),
     frames: z.number().int().min(1).max(2000).optional(),
@@ -60,6 +62,17 @@ export function validateForModel(input: JobInput, model: ModelEntry): string | n
   }
   if (input.aspectRatio && model.aspectRatios.length > 0 && !model.aspectRatios.includes(input.aspectRatio)) {
     return `${model.name} supports ${model.aspectRatios.join(', ')} only.`;
+  }
+  if (model.video) {
+    if ((input.quality || input.aspectRatio) && !pickSize(model, input.quality, input.aspectRatio)) {
+      const choices = model.video.sizes.filter((o) => !input.aspectRatio || o.ratio === input.aspectRatio).map((o) => o.quality);
+      return `${model.name} has no ${input.quality} ${input.aspectRatio ?? ''} option; choose ${[...new Set(choices)].join(', ')}.`.replace(/\s+/g, ' ');
+    }
+    if (input.frames !== undefined && input.frames > model.video.frames.max) {
+      return `${model.name} makes at most ${model.video.frames.max} frames (${Math.floor(model.video.frames.max / model.video.fps)} s).`;
+    }
+  } else if (input.quality) {
+    return `${model.name} has no quality options.`;
   }
   return null;
 }
@@ -255,7 +268,10 @@ export class JobQueue extends EventEmitter {
         aspectRatio: p.aspectRatio,
         seed: p.seed,
         steps: p.steps,
-        frames: p.frames,
+        // Frame counts fitted to the model's steps; size from the quality / ratio choice.
+        frames: p.frames !== undefined ? fitFrames(model, p.frames) : undefined,
+        resolution: pickSize(model, p.quality, p.aspectRatio)?.size,
+        flowShift: pickSize(model, p.quality, p.aspectRatio)?.flowShift,
         imagePath: p.imageUploadId ? this.opts.resolveUpload(p.imageUploadId) ?? undefined : undefined,
         endImagePath: p.endImageUploadId ? this.opts.resolveUpload(p.endImageUploadId) ?? undefined : undefined,
         audioPath: p.audioUploadId ? this.opts.resolveUpload(p.audioUploadId) ?? undefined : undefined,

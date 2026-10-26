@@ -8,6 +8,24 @@ import registryJson from '../../models.json';
 const slug = /^[a-z0-9][a-z0-9._-]*$/;
 const resolution = z.string().regex(/^\d{2,5}x\d{2,5}$/);
 const aspectRatio = z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']);
+export const qualitySchema = z.enum(['480p', '540p', '720p', '1080p']);
+
+// Output sizes and lengths a model really supports (Wan2GP: shared/resolutions.py presets filtered by
+// the model's budget and aligned to its vae_block_size; frame rules from the model handler).
+const videoBlock = z.object({
+  fps: z.number().positive(),
+  // Valid frame counts are offset + k * step, at least min and at most max.
+  frames: z.object({
+    min: z.number().int().positive(),
+    step: z.number().int().positive(),
+    offset: z.number().int().min(0).default(1),
+    max: z.number().int().positive(),
+  }),
+  // First entry = default.
+  sizes: z
+    .array(z.object({ quality: qualitySchema, ratio: aspectRatio, size: resolution, flowShift: z.number().positive().optional() }))
+    .min(1),
+});
 const inputMode = z.enum(['none', 'optional', 'required']);
 
 // API-format ComfyUI node reference: node id (as exported by "Save (API)") + input name.
@@ -52,6 +70,8 @@ const comfyuiBlock = z.object({
       height: nodeRefs,
       image: nodeRefs,
       audio: nodeRefs,
+      // Scheduler shift that depends on the resolution (Cosmos3: 5 at 480p, 10 at 720p).
+      flowShift: nodeRefs,
     })
     .partial(),
   // Node whose output media is the result (SaveVideo, VHS_VideoCombine, SaveImage, ...).
@@ -87,6 +107,7 @@ export const modelSchema = z
       .object({ image: inputMode.default('none'), endImage: inputMode.default('none'), audio: inputMode.default('none') })
       .default({ image: 'none', endImage: 'none', audio: 'none' }),
     aspectRatios: z.array(aspectRatio).default([]),
+    video: videoBlock.optional(),
     defaults: z
       .object({ steps: z.number().int().positive().optional(), frames: z.number().int().positive().optional() })
       .default({}),
@@ -111,6 +132,16 @@ export const modelSchema = z
         if (!resolutions[ratio]) {
           ctx.addIssue({ code: 'custom', message: `aspect ratio ${ratio} has no resolution`, path: ['aspectRatios'] });
         }
+      }
+    }
+    if (m.video) {
+      const ratios = new Set(m.video.sizes.map((o) => o.ratio));
+      if (m.aspectRatios.length !== ratios.size || !m.aspectRatios.every((r) => ratios.has(r))) {
+        ctx.addIssue({ code: 'custom', message: `aspectRatios must list the ratios of video.sizes (${[...ratios].join(', ')})`, path: ['aspectRatios'] });
+      }
+      const f = m.defaults.frames;
+      if (f !== undefined && (f < m.video.frames.min || f > m.video.frames.max || (f - m.video.frames.offset) % m.video.frames.step !== 0)) {
+        ctx.addIssue({ code: 'custom', message: `defaults.frames ${f} is not a valid frame count for this model`, path: ['defaults', 'frames'] });
       }
     }
     for (const d of m.comfyui?.downloads ?? []) {
@@ -142,6 +173,31 @@ let cached: Registry | null = null;
 export function getRegistry(): Registry {
   cached ??= parseRegistry(registryJson);
   return cached;
+}
+
+export type SizeOption = NonNullable<ModelEntry['video']>['sizes'][number];
+
+// The size for a quality / aspect ratio choice; missing choices fall back to the model default.
+export function pickSize(model: ModelEntry, quality?: string, ratio?: string): SizeOption | null {
+  const sizes = model.video?.sizes;
+  if (!sizes) return null;
+  // Without a quality: the default quality for that ratio, else the first size with that ratio.
+  const q = quality ?? sizes[0].quality;
+  return (
+    sizes.find((o) => o.quality === q && (!ratio || o.ratio === ratio)) ??
+    (quality ? null : sizes.find((o) => !ratio || o.ratio === ratio) ?? null)
+  );
+}
+
+// A requested frame count fitted to the model's frame steps the way WanGP does it (rounded up,
+// shared/utils/frame_scheduler.py normalize_frame_count), then kept within the maximum.
+export function fitFrames(model: ModelEntry, frames: number): number {
+  const rule = model.video?.frames;
+  if (!rule) return frames;
+  const up = (n: number) => Math.ceil(Math.max(0, Math.max(rule.min, n) - rule.offset) / rule.step) * rule.step + rule.offset;
+  let fitted = up(frames);
+  while (fitted > rule.max && fitted - rule.step >= rule.min) fitted -= rule.step;
+  return fitted;
 }
 
 export function getModel(id: string): ModelEntry | undefined {

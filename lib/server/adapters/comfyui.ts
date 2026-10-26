@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { ModelEntry } from '../registry';
+import { pickSize } from '../registry';
 import type { Adapter, GenerateRequest, GenerateResult, GenerationParams, ModelStatus } from './types';
 import { CancelledError, sleep, throwIfAborted } from './types';
 
@@ -56,12 +57,14 @@ export function applyInputs(
   setInput(wf, block, 'steps', params.steps ?? model.defaults.steps);
   setInput(wf, block, 'frames', params.frames ?? model.defaults.frames);
   const ratio = params.aspectRatio ?? model.aspectRatios[0];
-  const size = ratio ? block.resolutions?.[ratio as keyof typeof block.resolutions] : undefined;
+  const option = pickSize(model, undefined, ratio);
+  const size = params.resolution ?? option?.size ?? (ratio ? block.resolutions?.[ratio as keyof typeof block.resolutions] : undefined);
   if (size) {
     const [w, h] = size.split('x').map(Number);
     setInput(wf, block, 'width', w);
     setInput(wf, block, 'height', h);
   }
+  setInput(wf, block, 'flowShift', params.flowShift ?? option?.flowShift);
   setInput(wf, block, 'image', uploaded.image);
   setInput(wf, block, 'audio', uploaded.audio);
   return wf;

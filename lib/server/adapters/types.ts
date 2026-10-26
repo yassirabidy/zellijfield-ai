@@ -7,6 +7,10 @@ export interface GenerationParams {
   seed?: number;
   steps?: number;
   frames?: number;
+  // WxH chosen from the model's video.sizes (quality + aspect ratio).
+  resolution?: string;
+  // Resolution-dependent scheduler shift (ComfyUI Cosmos3).
+  flowShift?: number;
   // Absolute paths on the studio's disk, resolved server-side from upload ids.
   imagePath?: string;
   // Last frame (models with inputs.endImage).

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { ModelEntry } from '../registry';
+import { pickSize } from '../registry';
 import type { Adapter, GenerateRequest, GenerateResult, ModelStatus, ProgressEvent } from './types';
 import { CancelledError, throwIfAborted } from './types';
 // Shared with the Electron app (CommonJS, no Electron imports):
@@ -42,6 +43,8 @@ function settingsParams(req: GenerateRequest) {
     prompt: p.prompt,
     negative_prompt: p.negativePrompt,
     aspect_ratio: p.aspectRatio,
+    // Default size for the ratio when the caller did not resolve one (see jobs.ts).
+    resolution: p.resolution ?? pickSize(req.model, undefined, p.aspectRatio)?.size,
     steps: p.steps,
     video_length: p.frames,
     seed: p.seed,

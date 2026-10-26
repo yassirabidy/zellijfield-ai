@@ -120,7 +120,7 @@ function buildWan2gpSettings(model, params = {}, { imageStart, imageEnd } = {}) 
     };
     if (params.negative_prompt) settings.negative_prompt = params.negative_prompt;
 
-    const resolution = model.resolutions?.[params.aspect_ratio] || model.resolutions?.[model.aspectRatios?.[0]];
+    const resolution = params.resolution || model.resolutions?.[params.aspect_ratio] || model.resolutions?.[model.aspectRatios?.[0]];
     if (resolution) settings.resolution = resolution;
 
     const steps = toInt(params.steps);
