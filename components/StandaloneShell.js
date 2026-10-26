@@ -12,6 +12,7 @@ const DesignAgentStudio = dynamic(() => import('studio').then(mod => mod.DesignA
 });
 import axios from 'axios';
 import ApiKeyModal from './ApiKeyModal';
+import BrandMark from './BrandMark';
 import { getCommonCopy, getLocaleConfig, localizeStudioPath } from '@/lib/locales';
 
 // Zellijfield AI: the Muapi key lives server-side (Settings). The browser only knows whether one
@@ -809,9 +810,7 @@ export default function StandaloneShell({ locale = 'en' }) {
             {/* Logo & Title */}
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-[#d1fe17] rounded-lg flex items-center justify-center shadow-lg shadow-[#d1fe17]/20">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
+                <BrandMark size={26} />
               </div>
               <span className="text-sm font-bold tracking-tight hidden sm:block text-white">
                 {copy.shell.brand}

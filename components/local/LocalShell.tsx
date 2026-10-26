@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { ModelInfo } from '@/lib/client/api';
 import { api, LOCAL_BACKENDS } from '@/lib/client/api';
+import BrandMark from '../BrandMark';
 import GalleryGrid from './GalleryGrid';
 import LocalVideoStudio from './LocalVideoStudio';
 import ModelManager from './ModelManager';
@@ -49,7 +50,7 @@ export default function LocalShell({ tab }: { tab: LocalTab }) {
           </button>
           <Link href="/" className="flex items-center gap-2.5" title="Choose Local or API key">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#d1fe17] shadow-lg shadow-[#d1fe17]/20">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+              <BrandMark size={26} />
             </div>
             <span className="hidden text-sm font-bold tracking-tight sm:block">Zellijfield AI</span>
           </Link>

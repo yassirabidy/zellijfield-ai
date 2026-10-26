@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import BrandMark from './BrandMark';
 
 // First screen on every visit: pick the Local dashboard (this PC's GPU, no keys) or the API-key
 // dashboard (cloud studios with your own Muapi key). The two dashboards are separate pages.
@@ -37,9 +38,7 @@ export default function ModeChooser() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#030303] px-4 py-12 text-white">
       <div className="mb-10 flex flex-col items-center text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#d1fe17] shadow-lg shadow-[#d1fe17]/20">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
+          <BrandMark size={36} />
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Zellijfield AI</h1>
         <p className="mt-2 text-[14px] text-white/50">How do you want to create today?</p>
