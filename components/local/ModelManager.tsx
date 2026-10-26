@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DownloadState, ModelDownloadInfo, ModelInfo } from '@/lib/client/api';
+import type { DownloadState, EngineId, EnginesSnapshot, ModelDownloadInfo, ModelInfo } from '@/lib/client/api';
 import { api } from '@/lib/client/api';
+import EnginesPanel from './EnginesPanel';
 import StatusBadge from './StatusBadge';
 
 // Models page of the Local dashboard: download a model's weights when it is needed and remove
@@ -10,7 +11,8 @@ import StatusBadge from './StatusBadge';
 // container); ComfyUI models are fetched by the studio from the sources in models.json.
 
 const POLL_MS = 1500;
-const ACTIVE: DownloadState['status'][] = ['running', 'cancelling'];
+const ENGINE_POLL_MS = 3000;
+const ACTIVE: DownloadState['status'][] = ['waiting-engine', 'running', 'cancelling'];
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 ** 2) return `${Math.max(0, Math.round(bytes / 1024))} KB`;
@@ -52,6 +54,8 @@ export default function ModelManager() {
   const [busy, setBusy] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ modelId: string; kind: 'ok' | 'error'; text: string } | null>(null);
+  const [engines, setEngines] = useState<EnginesSnapshot | null>(null);
+  const [confirmInstall, setConfirmInstall] = useState<string | null>(null);
   const wasActive = useRef(new Set<string>());
 
   const loadStatus = useCallback(async () => {
@@ -70,17 +74,47 @@ export default function ModelManager() {
     if (finished.length) void loadStatus();
   }, [loadStatus]);
 
+  const engineWasBusy = useRef(false);
+  const loadEngines = useCallback(async () => {
+    const snap = await api.engines().catch(() => null);
+    setEngines(snap);
+    // Refresh model status when an engine operation ends (e.g. Wan2GP became reachable).
+    const busyNow = !!snap?.engines.some((e) => e.busy || e.op?.status === 'running' || (e.container === 'running' && !e.ready));
+    if (engineWasBusy.current && !busyNow) void loadStatus();
+    engineWasBusy.current = busyNow;
+  }, [loadStatus]);
+
   useEffect(() => {
     void loadStatus();
     void loadDownloads();
-  }, [loadStatus, loadDownloads]);
+    void loadEngines();
+  }, [loadStatus, loadDownloads, loadEngines]);
 
   const anyActive = Object.values(downloads).some((d) => d.download && ACTIVE.includes(d.download.status));
+  const enginesBusy = !!engines?.engines.some((e) => e.busy || e.op?.status === 'running' || (e.container === 'running' && !e.ready));
   useEffect(() => {
-    if (!anyActive) return;
-    const timer = setInterval(() => void loadDownloads(), POLL_MS);
+    if (!anyActive && !enginesBusy) return;
+    const timer = setInterval(() => {
+      void loadDownloads();
+      void loadEngines();
+    }, POLL_MS);
     return () => clearInterval(timer);
-  }, [anyActive, loadDownloads]);
+  }, [anyActive, enginesBusy, loadDownloads, loadEngines]);
+
+  // Engine state also changes outside this page (start.bat, Docker Desktop); reading it is cheap.
+  useEffect(() => {
+    const timer = setInterval(() => void loadEngines(), ENGINE_POLL_MS);
+    return () => clearInterval(timer);
+  }, [loadEngines]);
+
+  const engineOf = (m: ModelInfo) => engines?.engines.find((e) => e.id === m.backend) ?? null;
+  const isDownloaded = (m: ModelInfo) => {
+    const files = downloads[m.id]?.files;
+    return m.availability.status === 'installed' || (!!files && files.present > 0);
+  };
+  // Downloaded models per engine (for the Engines section and the "delete the engine?" hint).
+  const usage: Record<EngineId, string[]> = { wan2gp: [], comfyui: [] };
+  for (const m of models ?? []) if (isDownloaded(m) && (m.backend === 'wan2gp' || m.backend === 'comfyui')) usage[m.backend].push(m.name);
 
   async function act(modelId: string, action: () => Promise<string | void>) {
     setBusy(modelId);
@@ -93,7 +127,8 @@ export default function ModelManager() {
     } finally {
       setBusy(null);
       setConfirming(null);
-      await loadDownloads();
+      setConfirmInstall(null);
+      await Promise.all([loadDownloads(), loadEngines()]);
     }
   }
 
@@ -107,7 +142,11 @@ export default function ModelManager() {
     act(id, async () => {
       const r = await api.removeModel(id);
       void loadStatus();
-      const kept = r.keptShared.length ? ` Kept ${r.keptShared.length} file(s) another model still uses.` : '';
+      const model = models?.find((m) => m.id === id);
+      const engine = model ? engineOf(model) : null;
+      const othersUseEngine = (models ?? []).some((m) => m.id !== id && m.backend === model?.backend && isDownloaded(m));
+      const hint = engine?.installed && !othersUseEngine ? ` No other downloaded model uses ${engine.name}: you can delete the engine under Engines to free ${engine.sizeLabel ?? 'its space'}.` : '';
+      const kept = (r.keptShared.length ? ` Kept ${r.keptShared.length} file(s) another model still uses.` : '') + hint;
       if (r.removed.length) return `Removed ${r.removed.length} file(s), freed ${formatBytes(r.bytesFreed)}.${kept}`;
       if (r.bytesFreed) return `Deleted the unfinished download, freed ${formatBytes(r.bytesFreed)}.${kept}`;
       return `Nothing to remove.${kept}`;
@@ -129,6 +168,8 @@ export default function ModelManager() {
           </button>
         </div>
 
+        <EnginesPanel snapshot={engines} usage={usage} onChanged={() => void loadEngines()} />
+
         {models === null ? (
           <p className="text-[13px] text-white/40">Checking models…</p>
         ) : models.length === 0 ? (
@@ -143,6 +184,9 @@ export default function ModelManager() {
               const installed = m.availability.status === 'installed' || (!!files && files.total > 0 && files.present === files.total);
               const hasFiles = installed || (!!files && (files.present > 0 || files.partialBytes > 0)) || (m.backend === 'wan2gp' && m.availability.status !== 'unreachable');
               const canDownload = !!info?.downloadable && !installed && !running;
+              const engine = engineOf(m);
+              // With the engine manager, a missing engine is installed before the model.
+              const needsEngine = !!engines?.managerOnline && !!engine && !engine.installed;
               const disabled = busy === m.id;
               return (
                 <li key={m.id} className="rounded-xl border border-white/[0.07] bg-[#0a0a0b] p-5" data-testid={`manage-${m.id}`}>
@@ -170,7 +214,20 @@ export default function ModelManager() {
                     </div>
                   </div>
 
-                  {running && d && <Progress d={d} starting={m.backend === 'wan2gp' ? 'Starting Wan2GP (takes a minute or two)…' : 'Preparing…'} />}
+                  {d?.status === 'waiting-engine' && engine && (
+                    <div className="mt-3" data-testid="waiting-engine">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((engine.op?.progress ?? 0) * 100)}>
+                        <div className="h-full rounded-full bg-[#d1fe17]/60 transition-[width]" style={{ width: `${Math.max(3, (engine.op?.progress ?? 0) * 100)}%` }} />
+                      </div>
+                      <div className="mt-1.5 text-[11px] text-white/45">
+                        {engine.op?.status === 'running'
+                          ? `Step 1 of 2: ${engine.op.action === 'install' ? 'installing' : 'starting'} the ${engine.name} engine…`
+                          : `Step 1 of 2: waiting for ${engine.name} to get ready…`}{' '}
+                        The model download starts automatically after.
+                      </div>
+                    </div>
+                  )}
+                  {running && d && d.status !== 'waiting-engine' && <Progress d={d} starting={m.backend === 'wan2gp' ? 'Starting Wan2GP (takes a minute or two)…' : 'Preparing…'} />}
                   {d?.status === 'failed' && <p className="mt-3 text-[12px] text-red-300" role="alert">Download failed: {d.error}</p>}
                   {d?.status === 'cancelled' && <p className="mt-3 text-[12px] text-white/45">Download cancelled. Download again to continue.</p>}
                   {notice?.modelId === m.id && (
@@ -180,11 +237,24 @@ export default function ModelManager() {
                   )}
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {canDownload && (
-                      <button type="button" disabled={disabled} onClick={() => void download(m.id)} data-testid="download-model"
+                    {canDownload && confirmInstall !== m.id && (
+                      <button type="button" disabled={disabled} onClick={() => (needsEngine ? setConfirmInstall(m.id) : void download(m.id))} data-testid="download-model"
                         className="h-9 rounded-md bg-[#d1fe17] px-4 text-[13px] font-bold text-black hover:bg-[#b2d814] disabled:opacity-50">
-                        Download
+                        {needsEngine ? 'Install engine + download' : 'Download'}
                       </button>
+                    )}
+                    {canDownload && confirmInstall === m.id && engine && (
+                      <div className="w-full rounded-lg border border-[#d1fe17]/25 bg-[#d1fe17]/5 p-3 text-[12px] text-white/75" data-testid="confirm-install">
+                        This model runs in the <b>{engine.name}</b> engine, which is not installed yet. It is installed first ({engine.sizeEstimate}, 30–60 minutes the first time)
+                        {m.downloadSize ? `, then the model is downloaded (${formatBytes(m.downloadSize)})` : ''}.
+                        <div className="mt-2 flex gap-2">
+                          <button type="button" disabled={disabled} onClick={() => void download(m.id)} data-testid="confirm-install-download"
+                            className="h-8 rounded-md bg-[#d1fe17] px-3 text-[12px] font-bold text-black hover:bg-[#b2d814]">
+                            Install engine + download
+                          </button>
+                          <button type="button" onClick={() => setConfirmInstall(null)} className="h-8 rounded-md border border-white/15 bg-white/5 px-3 text-[12px] font-bold text-white/70">Cancel</button>
+                        </div>
+                      </div>
                     )}
                     {running && (
                       <button type="button" disabled={disabled || d?.status === 'cancelling'} onClick={() => void cancel(m.id)} data-testid="cancel-download"
@@ -211,7 +281,7 @@ export default function ModelManager() {
                       </>
                     )}
                   </div>
-                  {m.backend === 'wan2gp' && !installed && !running && (
+                  {m.backend === 'wan2gp' && !installed && !running && !engines?.managerOnline && (
                     <p className="mt-3 text-[11px] leading-4 text-white/35">Wan2GP must be running (the &quot;wan2gp&quot; or &quot;full&quot; start mode). Without a download here, it also fetches the files on the first generation.</p>
                   )}
                 </li>

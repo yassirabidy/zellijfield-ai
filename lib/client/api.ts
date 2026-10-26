@@ -70,7 +70,7 @@ export interface PublicSettings {
   keys: { muapi: boolean; fal: boolean; replicate: boolean };
 }
 
-export type DownloadStatus = 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled';
+export type DownloadStatus = 'waiting-engine' | 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled';
 
 export interface DownloadState {
   modelId: string;
@@ -90,6 +90,29 @@ export interface ModelDownloadInfo {
   downloadable: boolean;
   download: DownloadState | null;
   files?: { present: number; total: number; bytes: number; partialBytes: number };
+}
+
+export type EngineId = 'wan2gp' | 'comfyui';
+export type EngineAction = 'install' | 'start' | 'stop' | 'delete';
+
+export interface EngineState {
+  id: EngineId;
+  name: string;
+  sizeEstimate: string;
+  installed: boolean;
+  sizeLabel: string | null;
+  sizeBytes: number | null;
+  container: string;
+  health: string;
+  ready: boolean;
+  busy: boolean;
+  op: { action: EngineAction; status: 'running' | 'succeeded' | 'failed'; progress: number; message: string | null; error: string | null; startedAt: number | null; finishedAt: number | null } | null;
+}
+
+export interface EnginesSnapshot {
+  managerOnline: boolean;
+  dockerOk: boolean;
+  engines: EngineState[];
 }
 
 export interface RemoveResult {
@@ -136,6 +159,8 @@ export const api = {
   startDownload: (modelId: string) => request<{ started: boolean }>(`/api/models/${encodeURIComponent(modelId)}/download`, { method: 'POST' }),
   cancelDownload: (modelId: string) => request<{ cancelled: boolean }>(`/api/models/${encodeURIComponent(modelId)}/download`, { method: 'DELETE' }),
   removeModel: (modelId: string) => request<RemoveResult>(`/api/models/${encodeURIComponent(modelId)}/files`, { method: 'DELETE' }),
+  engines: () => request<EnginesSnapshot>('/api/engines'),
+  engineAction: (id: EngineId, action: EngineAction) => request<{ requested: boolean }>(`/api/engines/${id}`, json('POST', { action })),
   gallery: () => request<{ items: GalleryItem[] }>('/api/gallery').then((r) => r.items),
   upload: (file: File) => {
     const form = new FormData();
