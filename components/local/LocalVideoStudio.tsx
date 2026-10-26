@@ -52,18 +52,21 @@ function toInt(value: string): number | undefined {
   return Number.isInteger(n) ? n : undefined;
 }
 
+type MediaKind = 'image' | 'endImage' | 'audio';
+const MEDIA_LABEL: Record<MediaKind, string> = { image: 'Start image', endImage: 'Last frame', audio: 'Voice clip' };
+
 function MediaButton({ kind, required, uploading, fileName, onPick, onClear, testId }: {
-  kind: 'image' | 'audio'; required: boolean; uploading: boolean; fileName: string | null;
+  kind: MediaKind; required: boolean; uploading: boolean; fileName: string | null;
   onPick: (f: File) => void; onClear: () => void; testId: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
-  const label = kind === 'image' ? 'Start image' : 'Voice clip';
+  const label = MEDIA_LABEL[kind];
   return (
     <div className="flex items-center gap-2">
       {fileName ? (
         <button type="button" onClick={onClear} title={`Remove ${label.toLowerCase()} (${fileName})`}
           className={`${PROMPT_MEDIA_PREVIEW_CLASS} flex items-center justify-center bg-[#d1fe17]/10 text-[#d1fe17]`}>
-          {kind === 'image'
+          {kind !== 'audio'
             ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>
             : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>}
         </button>
@@ -77,7 +80,7 @@ function MediaButton({ kind, required, uploading, fileName, onPick, onClear, tes
       )}
       <span className="max-w-[140px] truncate text-[11px] font-semibold text-white/45">{fileName ?? `${label}${required ? ' *' : ''}`}</span>
       <input ref={ref} type="file" className="hidden" data-testid={testId}
-        accept={kind === 'image' ? 'image/png,image/jpeg,image/webp' : 'audio/mpeg,audio/wav,audio/mp4,audio/x-m4a'}
+        accept={kind === 'audio' ? 'audio/mpeg,audio/wav,audio/mp4,audio/x-m4a' : 'image/png,image/jpeg,image/webp'}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onPick(f);
@@ -139,8 +142,9 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   const [frames, setFrames] = useState('');
   const [menu, setMenu] = useState<Menu>(null);
   const [image, setImage] = useState<{ id: string; name: string } | null>(null);
+  const [endImage, setEndImage] = useState<{ id: string; name: string } | null>(null);
   const [audio, setAudio] = useState<{ id: string; name: string } | null>(null);
-  const [uploading, setUploading] = useState<'image' | 'audio' | null>(null);
+  const [uploading, setUploading] = useState<MediaKind | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
@@ -189,20 +193,22 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
     if (!model) return;
     setAspectRatio((r) => (model.aspectRatios.includes(r) ? r : model.aspectRatios[0] ?? ''));
     if (model.inputs.image === 'none') setImage(null);
+    if (model.inputs.endImage === 'none') setEndImage(null);
     if (model.inputs.audio === 'none') setAudio(null);
   }, [model]);
 
   const busy = job !== null && !TERMINAL.includes(job.status);
-  const missingInput = model && ((model.inputs.image === 'required' && !image) || (model.inputs.audio === 'required' && !audio));
+  const missingInput = model && ((model.inputs.image === 'required' && !image) || (model.inputs.endImage === 'required' && !endImage) || (model.inputs.audio === 'required' && !audio));
   const canGenerate = Boolean(model && prompt.trim() && !missingInput && !busy && !uploading);
 
-  const upload = async (kind: 'image' | 'audio', file: File) => {
+  const upload = async (kind: MediaKind, file: File) => {
     setUploading(kind);
     setError(null);
     try {
       const saved = await api.upload(file);
-      if (saved.kind !== kind) throw new Error(`That file is ${saved.kind === 'image' ? 'an image' : 'audio'}, not ${kind === 'image' ? 'an image' : 'audio'}.`);
-      (kind === 'image' ? setImage : setAudio)({ id: saved.id, name: file.name });
+      const expected = kind === 'audio' ? 'audio' : 'image';
+      if (saved.kind !== expected) throw new Error(`That file is ${saved.kind === 'image' ? 'an image' : 'audio'}, not ${expected === 'image' ? 'an image' : 'audio'}.`);
+      ({ image: setImage, endImage: setEndImage, audio: setAudio })[kind]({ id: saved.id, name: file.name });
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -224,6 +230,7 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
         steps: toInt(steps),
         frames: toInt(frames),
         imageUploadId: image?.id,
+        endImageUploadId: endImage?.id,
         audioUploadId: audio?.id,
       });
       setJob(submitted);
@@ -320,11 +327,15 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
       <PromptComposer>
         {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-300" data-testid="error">{error}</div>}
         <div className="flex flex-col gap-3">
-          {model && (model.inputs.image !== 'none' || model.inputs.audio !== 'none') && (
+          {model && (model.inputs.image !== 'none' || model.inputs.endImage !== 'none' || model.inputs.audio !== 'none') && (
             <div className="flex flex-wrap items-center gap-4">
               {model.inputs.image !== 'none' && (
                 <MediaButton kind="image" required={model.inputs.image === 'required'} uploading={uploading === 'image'} fileName={image?.name ?? null}
                   onPick={(f) => void upload('image', f)} onClear={() => setImage(null)} testId="image-input" />
+              )}
+              {model.inputs.endImage !== 'none' && (
+                <MediaButton kind="endImage" required={model.inputs.endImage === 'required'} uploading={uploading === 'endImage'} fileName={endImage?.name ?? null}
+                  onPick={(f) => void upload('endImage', f)} onClear={() => setEndImage(null)} testId="end-image-input" />
               )}
               {model.inputs.audio !== 'none' && (
                 <MediaButton kind="audio" required={model.inputs.audio === 'required'} uploading={uploading === 'audio'} fileName={audio?.name ?? null}
