@@ -106,7 +106,7 @@ Use a folder **without spaces** if possible, e.g. `D:\ZellijfieldAI`.
   ```powershell
   git clone https://github.com/yassirabidy/zellijfield-ai.git D:\ZellijfieldAI
   ```
-- Or copy the project folder from a USB drive / zip to `D:ZellijfieldAI`.
+- Or copy the project folder from a USB drive / zip to `D:\ZellijfieldAI`.
 
 Then:
 ```powershell
