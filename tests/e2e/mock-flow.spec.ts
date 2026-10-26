@@ -6,7 +6,8 @@ test.describe('mode chooser', () => {
     await expect(page.getByTestId('choose-local')).toBeVisible();
     await expect(page.getByTestId('choose-api')).toBeVisible();
     await page.getByTestId('choose-local').click();
-    await expect(page).toHaveURL(/\/local\/video$/);
+    // The dev server compiles this page on first visit, which can take longer than 5 s.
+    await expect(page).toHaveURL(/\/local\/video$/, { timeout: 30_000 });
     await expect(page.getByTestId('mode-badge')).toHaveText('Local');
     await page.getByTestId('switch-mode').click();
     await expect(page.getByTestId('choose-api')).toBeVisible();
@@ -25,13 +26,18 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     await expect(page.getByTestId('local-nav-image')).toHaveCount(0);
     // Cloud-only studios are not part of the Local dashboard.
     await expect(page.getByText('Lip Sync')).toHaveCount(0);
+    // Model picker in the bottom prompt bar, as on the API dashboard.
+    await expect(page.getByTestId('studio-hero')).toBeVisible();
+    await page.getByTestId('model-picker').click();
     await expect(page.getByTestId('model-mock-video').getByTestId('status-installed')).toBeVisible();
     await expect(page.getByTestId('model-wan-2.2-t2v').getByTestId('status-unreachable')).toBeVisible();
   });
 
   test('generates a mock video with live progress and shows it in the gallery', async ({ page }) => {
     await page.goto('/local/video');
-    await page.getByTestId('model-mock-video').click();
+    await page.getByTestId('model-picker').click();
+    await page.getByTestId('model-mock-video').getByRole('menuitemradio').click();
+    await expect(page.getByTestId('hero-model')).toHaveText('Mock video (no GPU)');
     const generate = page.getByTestId('generate');
     await expect(generate).toBeDisabled();
     await page.getByTestId('prompt').fill('A paper boat drifting down a rainy street');
@@ -56,7 +62,9 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
 
   test('cancels a running job', async ({ page }) => {
     await page.goto('/local/video');
-    await page.getByTestId('model-mock-video').click();
+    await page.getByTestId('model-picker').click();
+    await page.getByTestId('model-mock-video').getByRole('menuitemradio').click();
+    await expect(page.getByTestId('hero-model')).toHaveText('Mock video (no GPU)');
     await page.getByTestId('prompt').fill('cancel me');
     await page.getByTestId('generate').click();
     await page.getByTestId('cancel').click();
@@ -78,6 +86,7 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     const sky = page.getByTestId('manage-skyreels-v3');
     await expect(sky.getByText('0 of 4 file(s) on disk')).toBeVisible();
     await expect(sky.getByTestId('download-model')).toBeVisible();
+    await expect(sky.getByTestId('download-size')).toHaveText(/Needs 29.8 GB of disk space/);
     // Nothing on disk yet, so nothing to remove.
     await expect(sky.getByTestId('remove-model')).toHaveCount(0);
 

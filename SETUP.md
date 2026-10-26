@@ -19,8 +19,8 @@ reachable from other computers unless you choose to open it (see [LAN access](do
 | Internet | needed for installation and first model downloads | |
 
 Rough sizes: Docker images ≈ 55 GB (Wan2GP 34 GB, ComfyUI 16 GB, studio 0.5 GB). Each large video
-model is 20–60 GB. SkyReels-V3 needs ≈ 32 GB of files. Cosmos3-Super is far larger (its download
-repository is ≈ 196 GB) and is **experimental**.
+model is 20–50 GB (the Models page shows the exact size of each). SkyReels-V3 needs ≈ 30 GB. Cosmos3-Super is far larger (≈ 122 GB)
+and is **experimental**.
 
 ## 2. Install the NVIDIA driver (Windows side)
 
@@ -118,8 +118,8 @@ model is no longer needed. Download a model when you need it; nothing is downloa
   (for example a text encoder shared by the Wan 2.2 models) are kept until that model is removed
   too. A model cannot be removed while it has jobs waiting or running.
 
-Sizes: SkyReels-V3 ≈ 32 GB in total; each Wan2GP video model 20–60 GB; Cosmos3-Super is very large
-(≈ 196 GB) and **experimental**. Read its license ("openmdw-1.1") before commercial use.
+Each model on the Models page shows how much disk space it needs (for example SkyReels-V3 ≈ 30 GB,
+Wan 2.2 ≈ 37 GB, MiniMax H3 ≈ 48 GB; Cosmos3-Super ≈ 122 GB and **experimental**: read its license ("openmdw-1.1") before commercial use).
 
 If you already have the files (another PC, a USB drive), you can copy them instead:
 
