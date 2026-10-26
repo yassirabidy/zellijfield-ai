@@ -2,9 +2,30 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  PROMPT_CONTROL_LABEL_CLASS,
+  PROMPT_MEDIA_PREVIEW_CLASS,
+  PromptAction,
+  PromptAspectRatioIcon,
+  PromptChevronIcon,
+  PromptComposer,
+  PromptControls,
+  PromptFooter,
+  PromptMenuItem,
+  PromptMenuList,
+  PromptPopover,
+  PromptPopoverHeader,
+  PromptTextarea,
+  promptControlClassName,
+  promptMediaButtonClassName,
+} from 'studio/prompt';
 import type { GalleryItem, Job, ModelInfo } from '@/lib/client/api';
 import { api, LOCAL_BACKENDS, mediaUrl, TERMINAL, watchJob } from '@/lib/client/api';
 import StatusBadge from './StatusBadge';
+
+// Local Video Studio, laid out like the API dashboard's Video Studio: a hero for the selected
+// model and a floating prompt bar at the bottom with the model picker and settings. It uses the
+// same prompt-bar primitives (packages/studio/src/components/prompt) so both modes look alike.
 
 const BACKEND_LABEL: Record<ModelInfo['backend'], string> = {
   mock: 'Mock',
@@ -13,6 +34,8 @@ const BACKEND_LABEL: Record<ModelInfo['backend'], string> = {
   fal: 'fal',
   replicate: 'Replicate',
 };
+
+type Menu = 'model' | 'ratio' | 'settings' | null;
 
 interface Props {
   // Which local models to offer.
@@ -29,43 +52,84 @@ function toInt(value: string): number | undefined {
   return Number.isInteger(n) ? n : undefined;
 }
 
-function FilePicker({ label, accept, required, uploading, fileName, onPick, onClear, testId }: {
-  label: string; accept: string; required: boolean; uploading: boolean; fileName: string | null;
+function MediaButton({ kind, required, uploading, fileName, onPick, onClear, testId }: {
+  kind: 'image' | 'audio'; required: boolean; uploading: boolean; fileName: string | null;
   onPick: (f: File) => void; onClear: () => void; testId: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  const label = kind === 'image' ? 'Start image' : 'Voice clip';
   return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white/40">
-        <span>{label}{required ? ' *' : ' (optional)'}</span>
-        {fileName && <button type="button" onClick={onClear} className="normal-case text-white/50 hover:text-white">Remove</button>}
-      </div>
-      <button
-        type="button"
-        onClick={() => ref.current?.click()}
-        className="flex h-11 w-full items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/[0.02] text-[12px] text-white/60 transition-colors hover:border-[#d1fe17]/40 hover:text-white"
-      >
-        {uploading ? 'Uploading…' : fileName ?? `Choose ${label.toLowerCase()}`}
-      </button>
-      <input
-        ref={ref}
-        type="file"
-        accept={accept}
-        className="hidden"
-        data-testid={testId}
+    <div className="flex items-center gap-2">
+      {fileName ? (
+        <button type="button" onClick={onClear} title={`Remove ${label.toLowerCase()} (${fileName})`}
+          className={`${PROMPT_MEDIA_PREVIEW_CLASS} flex items-center justify-center bg-[#d1fe17]/10 text-[#d1fe17]`}>
+          {kind === 'image'
+            ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>
+            : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>}
+        </button>
+      ) : (
+        <button type="button" onClick={() => ref.current?.click()} title={`${uploading ? 'Uploading' : 'Add'} ${label.toLowerCase()}${required ? ' (required)' : ' (optional)'}`}
+          className={promptMediaButtonClassName({ active: required })}>
+          {uploading
+            ? <span className="animate-spin text-[#d1fe17]">◌</span>
+            : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white/60 group-hover:text-[#d1fe17]"><path d="M12 5v14M5 12h14" /></svg>}
+        </button>
+      )}
+      <span className="max-w-[140px] truncate text-[11px] font-semibold text-white/45">{fileName ?? `${label}${required ? ' *' : ''}`}</span>
+      <input ref={ref} type="file" className="hidden" data-testid={testId}
+        accept={kind === 'image' ? 'image/png,image/jpeg,image/webp' : 'audio/mpeg,audio/wav,audio/mp4,audio/x-m4a'}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onPick(f);
           e.target.value = '';
-        }}
-      />
+        }} />
+    </div>
+  );
+}
+
+function Hero({ model, gallery }: { model: ModelInfo | null; gallery: GalleryItem[] }) {
+  const thumbs = gallery.slice(0, 4);
+  const shapes = ['rounded-2xl -rotate-[12deg]', 'rounded-2xl -rotate-[4deg] -ml-4', 'rounded-full rotate-[6deg] -ml-4', 'rounded-2xl rotate-[12deg] -ml-4'];
+  return (
+    <div className="flex flex-col items-center px-4 text-center" data-testid="studio-hero">
+      <div className="mb-8 flex items-center justify-center">
+        {shapes.map((shape, i) => {
+          const item = thumbs[i];
+          return (
+            <div key={shape} className={`h-24 w-20 flex-shrink-0 overflow-hidden border border-white/10 bg-gradient-to-br from-[#d1fe17]/15 via-white/[0.03] to-purple-500/15 shadow-2xl transition-all duration-300 hover:z-20 hover:rotate-0 hover:scale-110 sm:h-28 sm:w-24 ${shape}`}>
+              {item ? (
+                item.mediaType === 'video'
+                  ? <video src={item.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                  : <img src={item.url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[#d1fe17]/60">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l6-3v10l-6-3" /></svg>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <h1 className="mb-4 flex flex-col items-center font-extrabold tracking-tight">
+        <span className="mb-1 text-xl font-black uppercase tracking-wide text-white opacity-90 sm:text-3xl">Start creating with</span>
+        <span className="text-2xl font-black uppercase tracking-tight text-[#d1fe17] sm:mt-1 sm:text-4xl" data-testid="hero-model">{model?.name ?? 'a local model'}</span>
+      </h1>
+      <p className="max-w-lg text-xs font-medium leading-relaxed tracking-wide text-white/40 sm:text-sm">
+        {model?.description || 'Download a model on the Models page, then describe your video below.'}
+      </p>
+      {model && model.availability.status !== 'installed' && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[12px] text-white/50" data-testid="status-detail">
+          <StatusBadge status={model.availability.status} detail={model.availability.detail} />
+          {model.availability.status === 'missing' && <Link href="/local/models" className="font-semibold text-[#d1fe17] hover:underline">Download it on the Models page</Link>}
+          {model.availability.status === 'unreachable' && <span>{model.backend === 'comfyui' ? 'ComfyUI' : 'Wan2GP'} is not running.</span>}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function LocalVideoStudio({ mediaType = 'video', onGenerationStart, onGenerationEnd, onGenerationComplete, onGenerationError }: Props) {
   const [models, setModels] = useState<ModelInfo[] | null>(null);
-  const [loadingModels, setLoadingModels] = useState(false);
   const [modelId, setModelId] = useState<string>('');
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
@@ -73,7 +137,7 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   const [seed, setSeed] = useState('');
   const [steps, setSteps] = useState('');
   const [frames, setFrames] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [menu, setMenu] = useState<Menu>(null);
   const [image, setImage] = useState<{ id: string; name: string } | null>(null);
   const [audio, setAudio] = useState<{ id: string; name: string } | null>(null);
   const [uploading, setUploading] = useState<'image' | 'audio' | null>(null);
@@ -81,22 +145,22 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   const [error, setError] = useState<string | null>(null);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const stopWatching = useRef<(() => void) | null>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
 
   const model = useMemo(() => models?.find((m) => m.id === modelId) ?? null, [models, modelId]);
 
   const loadModels = useCallback(async () => {
-    setLoadingModels(true);
     try {
       const [all, settings] = await Promise.all([api.models(), api.settings().catch(() => null)]);
       const list = all.filter((m) => m.type === mediaType && LOCAL_BACKENDS.includes(m.backend));
       setModels(list);
-      // First choice: keep the current selection, else the first model of the default backend.
-      const preferred = list.find((m) => m.backend === settings?.defaultBackend) ?? list[0];
+      // First choice: keep the current selection, else an installed model of the default
+      // backend, else any installed model, else the first one.
+      const installed = list.filter((m) => m.availability.status === 'installed');
+      const preferred = installed.find((m) => m.backend === settings?.defaultBackend) ?? installed[0] ?? list.find((m) => m.backend === settings?.defaultBackend) ?? list[0];
       setModelId((current) => (current && list.some((m) => m.id === current) ? current : preferred?.id ?? ''));
     } catch (err) {
       setError((err as Error).message);
-    } finally {
-      setLoadingModels(false);
     }
   }, [mediaType]);
 
@@ -109,6 +173,16 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
     loadGallery();
     return () => stopWatching.current?.();
   }, [loadModels, loadGallery]);
+
+  // Close menus on outside click.
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: MouseEvent) => {
+      if (!controlsRef.current?.contains(e.target as Node)) setMenu(null);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menu]);
 
   // Keep options valid for the selected model.
   useEffect(() => {
@@ -139,6 +213,7 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   const generate = async () => {
     if (!model) return;
     setError(null);
+    setMenu(null);
     try {
       const submitted = await api.submitJob({
         modelId: model.id,
@@ -175,185 +250,200 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   };
 
   const resultUrl = job?.status === 'succeeded' && job.outputPath ? mediaUrl(job.outputPath) : null;
+  const toggle = (name: Exclude<Menu, null>) => () => setMenu((m) => (m === name ? null : name));
+  const settingsChanged = Boolean(negativePrompt || seed || steps || frames);
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden md:flex-row" data-testid="local-video-studio" data-media-type={mediaType}>
-      {/* Controls */}
-      <aside className="flex w-full flex-shrink-0 flex-col gap-5 overflow-y-auto border-b border-white/[0.06] bg-[#0a0a0b] p-5 md:w-[380px] md:border-b-0 md:border-r">
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-white/40">Model</span>
-            <button type="button" onClick={() => void loadModels()} className="text-[11px] text-white/50 hover:text-white" data-testid="refresh-status">
-              {loadingModels ? 'Checking…' : 'Refresh status'}
-            </button>
-          </div>
-          <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Model">
-            {models === null && <div className="text-[12px] text-white/40">Loading models…</div>}
-            {models?.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                role="radio"
-                aria-checked={m.id === modelId}
-                data-testid={`model-${m.id}`}
-                onClick={() => setModelId(m.id)}
-                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${m.id === modelId ? 'border-[#d1fe17]/40 bg-[#d1fe17]/10' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[13px] font-semibold text-white">{m.name}</span>
-                  <StatusBadge status={m.availability.status} detail={m.availability.detail} />
-                </div>
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/40">
-                  <span>{BACKEND_LABEL[m.backend]}</span>
-                  {m.experimental && <span className="rounded bg-purple-500/15 px-1.5 text-purple-300">experimental</span>}
-                </div>
-              </button>
-            ))}
-          </div>
-          {model && model.availability.status !== 'installed' && model.availability.detail && (
-            <p className="mt-2 text-[11px] leading-4 text-amber-200/70" data-testid="status-detail">{model.availability.detail}</p>
-          )}
-          {model?.todo.length ? (
-            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] leading-4 text-white/35">
-              {model.todo.map((t) => <li key={t}>{t}</li>)}
-            </ul>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="local-prompt" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/40">Prompt *</label>
-          <textarea
-            id="local-prompt"
-            data-testid="prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            rows={5}
-            maxLength={4000}
-            placeholder={mediaType === 'video' ? 'Describe the shot: subject, action, camera, light…' : 'Describe the image: subject, style, composition, light…'}
-            className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[13px] text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none"
-          />
-        </div>
-
-        {model && model.inputs.image !== 'none' && (
-          <FilePicker label="Start image" accept="image/png,image/jpeg,image/webp" required={model.inputs.image === 'required'}
-            uploading={uploading === 'image'} fileName={image?.name ?? null} onPick={(f) => void upload('image', f)} onClear={() => setImage(null)} testId="image-input" />
-        )}
-        {model && model.inputs.audio !== 'none' && (
-          <FilePicker label="Voice clip" accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a" required={model.inputs.audio === 'required'}
-            uploading={uploading === 'audio'} fileName={audio?.name ?? null} onPick={(f) => void upload('audio', f)} onClear={() => setAudio(null)} testId="audio-input" />
-        )}
-
-        {model && model.aspectRatios.length > 1 && (
-          <div>
-            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-white/40">Aspect ratio</span>
-            <div className="flex gap-1.5">
-              {model.aspectRatios.map((r) => (
-                <button key={r} type="button" onClick={() => setAspectRatio(r)}
-                  className={`flex-1 rounded-md border py-1.5 text-[12px] font-semibold ${r === aspectRatio ? 'border-[#d1fe17]/50 bg-[#d1fe17]/10 text-[#d1fe17]' : 'border-white/10 text-white/60 hover:text-white'}`}>
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div>
-          <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="text-[12px] font-semibold text-white/50 hover:text-white">
-            {showAdvanced ? '− Advanced' : '+ Advanced'}
-          </button>
-          {showAdvanced && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <textarea value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} rows={2} maxLength={2000} placeholder="Negative prompt"
-                className="col-span-3 resize-none rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[12px] text-white placeholder:text-white/25 focus:outline-none" />
-              {[
-                ['Seed', seed, setSeed, 'random'],
-                ['Steps', steps, setSteps, model?.defaults.steps ? String(model.defaults.steps) : 'default'],
-                ['Frames', frames, setFrames, model?.defaults.frames ? String(model.defaults.frames) : 'default'],
-              ].map(([label, value, setter, placeholder]) => (
-                <label key={label as string} className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                  {label as string}
-                  <input inputMode="numeric" value={value as string} placeholder={placeholder as string}
-                    onChange={(e) => (setter as (v: string) => void)(e.target.value.replace(/[^\d]/g, ''))}
-                    className="mt-1 w-full rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-[12px] normal-case text-white placeholder:text-white/25 focus:outline-none" />
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-300" data-testid="error">{error}</div>}
-
-        <button
-          type="button"
-          data-testid="generate"
-          disabled={!canGenerate}
-          onClick={() => void generate()}
-          className="h-11 flex-shrink-0 rounded-lg bg-[#d1fe17] text-[13px] font-bold text-black transition-colors hover:bg-[#b2d814] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30"
-        >
-          {busy ? 'Generating…' : 'Generate'}
-        </button>
-      </aside>
-
-      {/* Output */}
-      <section className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-5 md:p-8">
+    <div className="relative flex h-full w-full flex-col items-center overflow-hidden bg-[#030303]" data-testid="local-video-studio" data-media-type={mediaType}>
+      {/* Result area: hero until the first generation, then the job and recent outputs. */}
+      <div className="w-full flex-1 overflow-y-auto px-4 pb-72 pt-10 md:px-8">
         {job ? (
-          <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0b] p-5" data-testid="job-card" data-status={job.status}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-[13px] font-semibold text-white">{job.params.prompt}</div>
-                <div className="text-[11px] text-white/40">{models?.find((m) => m.id === job.modelId)?.name ?? job.modelId}</div>
+          <div className="mx-auto max-w-4xl space-y-6">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0b] p-5" data-testid="job-card" data-status={job.status}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-semibold text-white">{job.params.prompt}</div>
+                  <div className="text-[11px] text-white/40">{models?.find((m) => m.id === job.modelId)?.name ?? job.modelId}</div>
+                </div>
+                {busy ? (
+                  <button type="button" onClick={() => void cancel()} data-testid="cancel" className="rounded-md border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/70 hover:text-white">Cancel</button>
+                ) : (
+                  <span className={`text-[12px] font-semibold ${job.status === 'succeeded' ? 'text-lime-300' : job.status === 'failed' ? 'text-red-300' : 'text-white/50'}`} data-testid="job-status">{job.status}</span>
+                )}
               </div>
-              {busy ? (
-                <button type="button" onClick={() => void cancel()} data-testid="cancel" className="rounded-md border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/70 hover:text-white">Cancel</button>
-              ) : (
-                <span className={`text-[12px] font-semibold ${job.status === 'succeeded' ? 'text-lime-300' : job.status === 'failed' ? 'text-red-300' : 'text-white/50'}`} data-testid="job-status">{job.status}</span>
+              {busy && (
+                <>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/5" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(job.progress * 100)}>
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#d1fe17] to-[#a855f7] transition-all duration-300" style={{ width: `${Math.max(2, job.progress * 100)}%` }} />
+                  </div>
+                  <div className="mt-2 flex justify-between text-[11px] text-white/50" data-testid="job-message">
+                    <span>{job.status === 'queued' ? 'Waiting for the GPU…' : job.message}</span>
+                    <span>{Math.round(job.progress * 100)}%</span>
+                  </div>
+                </>
+              )}
+              {job.status === 'failed' && <p className="mt-2 whitespace-pre-wrap text-[12px] text-red-300" data-testid="job-error">{job.error}</p>}
+              {resultUrl && (
+                job.mediaType === 'image'
+                  ? <img src={resultUrl} alt={job.params.prompt} className="mt-3 max-h-[55vh] w-full rounded-xl object-contain" />
+                  : <video src={resultUrl} controls autoPlay loop muted playsInline className="mt-3 max-h-[55vh] w-full rounded-xl bg-black" data-testid="result-video" />
               )}
             </div>
-            {busy && (
-              <>
-                <div className="h-2 overflow-hidden rounded-full bg-white/5" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(job.progress * 100)}>
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#d1fe17] to-[#a855f7] transition-all duration-300" style={{ width: `${Math.max(2, job.progress * 100)}%` }} />
+
+            {gallery.length > 0 && (
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-[13px] font-semibold text-white/80">Recent outputs</h2>
+                  <Link href="/local/gallery" className="text-[12px] text-[#d1fe17] hover:underline">Open gallery</Link>
                 </div>
-                <div className="mt-2 flex justify-between text-[11px] text-white/50" data-testid="job-message">
-                  <span>{job.status === 'queued' ? 'Waiting for the GPU…' : job.message}</span>
-                  <span>{Math.round(job.progress * 100)}%</span>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" data-testid="recent-outputs">
+                  {gallery.map((item) => (
+                    <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-xl border border-white/[0.06] bg-black">
+                      {item.mediaType === 'video'
+                        ? <video src={item.url} muted playsInline preload="metadata" className="aspect-video w-full object-cover" />
+                        : <img src={item.url} alt={item.prompt ?? ''} className="aspect-video w-full object-cover" />}
+                      <div className="truncate px-2 py-1.5 text-[11px] text-white/50 group-hover:text-white/80">{item.prompt ?? item.id}</div>
+                    </a>
+                  ))}
                 </div>
-              </>
-            )}
-            {job.status === 'failed' && <p className="mt-2 whitespace-pre-wrap text-[12px] text-red-300" data-testid="job-error">{job.error}</p>}
-            {resultUrl && (
-              job.mediaType === 'image'
-                ? <img src={resultUrl} alt={job.params.prompt} className="mt-3 max-h-[60vh] w-full rounded-lg object-contain" />
-                : <video src={resultUrl} controls autoPlay loop muted playsInline className="mt-3 max-h-[60vh] w-full rounded-lg bg-black" data-testid="result-video" />
+              </div>
             )}
           </div>
         ) : (
-          <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-dashed border-white/10 text-center text-[13px] text-white/35">
-            Pick a model, write a prompt and press Generate.<br />Jobs run one at a time on the GPU; progress appears here.
+          <div className="flex min-h-full items-center justify-center">
+            <Hero model={model} gallery={gallery} />
           </div>
         )}
+      </div>
 
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[13px] font-semibold text-white/80">Recent outputs</h2>
-            <Link href="/gallery" className="text-[12px] text-[#d1fe17] hover:underline">Open gallery</Link>
-          </div>
-          {gallery.length === 0 ? (
-            <p className="text-[12px] text-white/35">Nothing yet. Results are saved to data/outputs/studio.</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" data-testid="recent-outputs">
-              {gallery.map((item) => (
-                <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-lg border border-white/[0.06] bg-black">
-                  {item.mediaType === 'video'
-                    ? <video src={item.url} muted playsInline preload="metadata" className="aspect-video w-full object-cover" />
-                    : <img src={item.url} alt={item.prompt ?? ''} className="aspect-video w-full object-cover" />}
-                  <div className="truncate px-2 py-1.5 text-[11px] text-white/50 group-hover:text-white/80">{item.prompt ?? item.id}</div>
-                </a>
-              ))}
+      {/* Bottom prompt bar */}
+      <PromptComposer>
+        {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-300" data-testid="error">{error}</div>}
+        <div className="flex flex-col gap-3">
+          {model && (model.inputs.image !== 'none' || model.inputs.audio !== 'none') && (
+            <div className="flex flex-wrap items-center gap-4">
+              {model.inputs.image !== 'none' && (
+                <MediaButton kind="image" required={model.inputs.image === 'required'} uploading={uploading === 'image'} fileName={image?.name ?? null}
+                  onPick={(f) => void upload('image', f)} onClear={() => setImage(null)} testId="image-input" />
+              )}
+              {model.inputs.audio !== 'none' && (
+                <MediaButton kind="audio" required={model.inputs.audio === 'required'} uploading={uploading === 'audio'} fileName={audio?.name ?? null}
+                  onPick={(f) => void upload('audio', f)} onClear={() => setAudio(null)} testId="audio-input" />
+              )}
             </div>
           )}
+          <PromptTextarea
+            data-testid="prompt"
+            aria-label="Prompt"
+            value={prompt}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canGenerate) void generate();
+            }}
+            maxLength={4000}
+            placeholder={mediaType === 'video' ? 'Describe the video you want to create' : 'Describe the image you want to create'}
+          />
         </div>
-      </section>
+
+        <PromptFooter>
+          <PromptControls ref={controlsRef}>
+            {/* Model */}
+            <div className="relative">
+              <button type="button" onClick={toggle('model')} data-testid="model-picker" className={promptControlClassName({ active: menu === 'model' })}>
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${model?.availability.status === 'installed' ? 'bg-[#d1fe17]' : model?.availability.status === 'missing' ? 'bg-amber-400' : 'bg-white/25'}`} />
+                <span className={PROMPT_CONTROL_LABEL_CLASS}>{model?.name ?? (models === null ? 'Loading models…' : 'No local models')}</span>
+                <PromptChevronIcon />
+              </button>
+              {menu === 'model' && (
+                <PromptPopover className="w-[calc(100vw-2rem)] max-w-md md:w-[440px]">
+                  <PromptPopoverHeader>Local models</PromptPopoverHeader>
+                  <PromptMenuList>
+                    {models?.map((m) => (
+                      <div key={m.id} className="flex items-center gap-2" data-testid={`model-${m.id}`}>
+                        <PromptMenuItem
+                          selected={m.id === modelId}
+                          description={`${BACKEND_LABEL[m.backend]}${m.experimental ? ' · experimental' : ''}`}
+                          onClick={() => {
+                            setModelId(m.id);
+                            setMenu(null);
+                          }}
+                        >
+                          {m.name}
+                        </PromptMenuItem>
+                        <StatusBadge status={m.availability.status} detail={m.availability.detail} />
+                      </div>
+                    ))}
+                  </PromptMenuList>
+                  <Link href="/local/models" className="mt-2 block border-t border-white/[0.05] px-3 pt-2 text-[11px] font-semibold text-[#d1fe17] hover:underline">Download or remove models</Link>
+                </PromptPopover>
+              )}
+            </div>
+
+            {/* Aspect ratio */}
+            {model && model.aspectRatios.length > 0 && (
+              <div className="relative">
+                <button type="button" onClick={model.aspectRatios.length > 1 ? toggle('ratio') : undefined} data-testid="ratio-picker"
+                  className={promptControlClassName({ active: menu === 'ratio', compact: true })}>
+                  <PromptAspectRatioIcon />
+                  <span className={PROMPT_CONTROL_LABEL_CLASS}>{aspectRatio}</span>
+                  {model.aspectRatios.length > 1 && <PromptChevronIcon />}
+                </button>
+                {menu === 'ratio' && (
+                  <PromptPopover>
+                    <PromptPopoverHeader>Aspect ratio</PromptPopoverHeader>
+                    <PromptMenuList>
+                      {model.aspectRatios.map((r) => (
+                        <PromptMenuItem key={r} selected={r === aspectRatio} onClick={() => { setAspectRatio(r); setMenu(null); }}>{r}</PromptMenuItem>
+                      ))}
+                    </PromptMenuList>
+                  </PromptPopover>
+                )}
+              </div>
+            )}
+
+            {/* Settings: frames, steps, seed, negative prompt */}
+            <div className="relative">
+              <button type="button" onClick={toggle('settings')} data-testid="settings-picker"
+                className={promptControlClassName({ active: menu === 'settings' || settingsChanged, compact: true })}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                <span className={PROMPT_CONTROL_LABEL_CLASS}>
+                  {frames ? `${frames} frames` : model?.defaults.frames ? `${model.defaults.frames} frames` : 'Settings'}
+                </span>
+                <PromptChevronIcon />
+              </button>
+              {menu === 'settings' && (
+                <PromptPopover className="w-[calc(100vw-2rem)] max-w-sm md:w-[340px]">
+                  <PromptPopoverHeader>Settings</PromptPopoverHeader>
+                  <div className="grid grid-cols-3 gap-2 px-1">
+                    {([
+                      ['Frames', frames, setFrames, model?.defaults.frames ? String(model.defaults.frames) : 'default'],
+                      ['Steps', steps, setSteps, model?.defaults.steps ? String(model.defaults.steps) : 'default'],
+                      ['Seed', seed, setSeed, 'random'],
+                    ] as const).map(([label, value, setter, placeholder]) => (
+                      <label key={label} className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                        {label}
+                        <input inputMode="numeric" value={value} placeholder={placeholder} data-testid={`setting-${label.toLowerCase()}`}
+                          onChange={(e) => setter(e.target.value.replace(/[^\d]/g, ''))}
+                          className="mt-1 w-full rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-[12px] normal-case text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none" />
+                      </label>
+                    ))}
+                    <label className="col-span-3 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                      Negative prompt
+                      <textarea value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} rows={2} maxLength={2000} placeholder="What to avoid"
+                        className="mt-1 w-full resize-none rounded-md border border-white/10 bg-white/[0.03] p-2 text-[12px] normal-case text-white placeholder:text-white/25 focus:border-[#d1fe17]/50 focus:outline-none" />
+                    </label>
+                  </div>
+                  <p className="mt-2 px-1 text-[10px] leading-4 text-white/35">Empty fields use the model&apos;s defaults.</p>
+                </PromptPopover>
+              )}
+            </div>
+          </PromptControls>
+
+          <PromptAction data-testid="generate" disabled={!canGenerate} onClick={() => void generate()}>
+            {busy ? (<><span className="inline-block animate-spin text-black">◌</span> Generating…</>) : <span>Generate</span>}
+          </PromptAction>
+        </PromptFooter>
+      </PromptComposer>
     </div>
   );
 }
