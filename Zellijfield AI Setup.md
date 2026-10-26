@@ -102,11 +102,11 @@ The second command must print the RTX 5080 table (it downloads a small test imag
 
 Use a folder **without spaces** if possible, e.g. `D:\ZellijfieldAI`.
 
-- If the person has access to the private GitHub repository (they sign in when asked):
+- Download it from GitHub (public, no sign-in needed; needs Git for Windows: `winget install Git.Git`):
   ```powershell
   git clone https://github.com/yassirabidy/zellijfield-ai.git D:\ZellijfieldAI
   ```
-- Otherwise copy the project folder from the USB drive / zip to `D:\ZellijfieldAI`.
+- Or copy the project folder from a USB drive / zip to `D:ZellijfieldAI`.
 
 Then:
 ```powershell
