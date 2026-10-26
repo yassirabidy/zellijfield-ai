@@ -5,6 +5,14 @@ export type Availability = 'installed' | 'missing' | 'unreachable' | 'needs-key'
 export type InputMode = 'none' | 'optional' | 'required';
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
+export type Quality = '480p' | '540p' | '720p' | '1080p';
+
+export interface VideoOptions {
+  fps: number;
+  frames: { min: number; step: number; offset: number; max: number };
+  sizes: Array<{ quality: Quality; ratio: string; size: string; flowShift?: number }>;
+}
+
 export interface ModelInfo {
   id: string;
   name: string;
@@ -20,6 +28,8 @@ export interface ModelInfo {
   todo: string[];
   // Bytes of a full download (Models page).
   downloadSize?: number;
+  // Supported output sizes and lengths (first size = default).
+  video?: VideoOptions;
   availability: { status: Availability; detail?: string };
 }
 
@@ -31,6 +41,7 @@ export interface JobInput {
   prompt: string;
   negativePrompt?: string;
   aspectRatio?: string;
+  quality?: Quality;
   seed?: number;
   steps?: number;
   frames?: number;

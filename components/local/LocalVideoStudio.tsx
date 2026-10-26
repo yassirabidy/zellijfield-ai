@@ -8,6 +8,7 @@ import {
   PromptAction,
   PromptAspectRatioIcon,
   PromptChevronIcon,
+  PromptDurationIcon,
   PromptComposer,
   PromptControls,
   PromptFooter,
@@ -19,8 +20,9 @@ import {
   promptControlClassName,
   promptMediaButtonClassName,
 } from 'studio/prompt';
-import type { GalleryItem, Job, ModelInfo } from '@/lib/client/api';
+import type { GalleryItem, Job, ModelInfo, Quality } from '@/lib/client/api';
 import { api, LOCAL_BACKENDS, mediaUrl, TERMINAL, watchJob } from '@/lib/client/api';
+import { durationOptions, formatSeconds, qualities, ratiosFor, sizeFor } from '@/lib/client/video';
 import StatusBadge from './StatusBadge';
 
 // Local Video Studio, laid out like the API dashboard's Video Studio: a hero for the selected
@@ -35,7 +37,7 @@ const BACKEND_LABEL: Record<ModelInfo['backend'], string> = {
   replicate: 'Replicate',
 };
 
-type Menu = 'model' | 'ratio' | 'settings' | null;
+type Menu = 'model' | 'quality' | 'ratio' | 'duration' | 'settings' | null;
 
 interface Props {
   // Which local models to offer.
@@ -137,6 +139,7 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<string>('');
+  const [quality, setQuality] = useState<Quality | null>(null);
   const [seed, setSeed] = useState('');
   const [steps, setSteps] = useState('');
   const [frames, setFrames] = useState('');
@@ -191,7 +194,10 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
   // Keep options valid for the selected model.
   useEffect(() => {
     if (!model) return;
-    setAspectRatio((r) => (model.aspectRatios.includes(r) ? r : model.aspectRatios[0] ?? ''));
+    const first = model.video?.sizes[0];
+    setQuality(first?.quality ?? null);
+    setAspectRatio(first?.ratio ?? model.aspectRatios[0] ?? '');
+    setFrames('');
     if (model.inputs.image === 'none') setImage(null);
     if (model.inputs.endImage === 'none') setEndImage(null);
     if (model.inputs.audio === 'none') setAudio(null);
@@ -226,6 +232,7 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
         prompt: prompt.trim(),
         negativePrompt: negativePrompt.trim() || undefined,
         aspectRatio: aspectRatio || undefined,
+        quality: quality ?? undefined,
         seed: toInt(seed),
         steps: toInt(steps),
         frames: toInt(frames),
@@ -390,23 +397,87 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
               )}
             </div>
 
-            {/* Aspect ratio */}
-            {model && model.aspectRatios.length > 0 && (
+            {/* Quality (480p … 1080p): only sizes the model supports */}
+            {model?.video && (
               <div className="relative">
-                <button type="button" onClick={model.aspectRatios.length > 1 ? toggle('ratio') : undefined} data-testid="ratio-picker"
+                <button type="button" onClick={qualities(model).length > 1 ? toggle('quality') : undefined} data-testid="quality-picker"
+                  className={promptControlClassName({ active: menu === 'quality', compact: true })}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 3h12l4 6-10 12L2 9z" /><path d="M2 9h20" /></svg>
+                  <span className={PROMPT_CONTROL_LABEL_CLASS}>{quality}</span>
+                  {qualities(model).length > 1 && <PromptChevronIcon />}
+                </button>
+                {menu === 'quality' && (
+                  <PromptPopover>
+                    <PromptPopoverHeader>Quality</PromptPopoverHeader>
+                    <PromptMenuList>
+                      {qualities(model).map((q) => (
+                        <PromptMenuItem key={q} selected={q === quality} data-testid={`quality-${q}`}
+                          description={ratiosFor(model, q).map((r) => sizeFor(model, q, r)).filter(Boolean).slice(0, 1).join('') + (ratiosFor(model, q).length > 1 ? ` · ${ratiosFor(model, q).length} ratios` : '')}
+                          onClick={() => {
+                            setQuality(q);
+                            if (!ratiosFor(model, q).includes(aspectRatio)) setAspectRatio(ratiosFor(model, q)[0]);
+                            setMenu(null);
+                          }}>
+                          {q}
+                        </PromptMenuItem>
+                      ))}
+                    </PromptMenuList>
+                    <p className="mt-2 px-1 text-[10px] leading-4 text-white/35">Higher quality needs more GPU memory and takes longer.</p>
+                  </PromptPopover>
+                )}
+              </div>
+            )}
+
+            {/* Aspect ratio */}
+            {model && ratiosFor(model, quality).length > 0 && (
+              <div className="relative">
+                <button type="button" onClick={ratiosFor(model, quality).length > 1 ? toggle('ratio') : undefined} data-testid="ratio-picker"
                   className={promptControlClassName({ active: menu === 'ratio', compact: true })}>
                   <PromptAspectRatioIcon />
                   <span className={PROMPT_CONTROL_LABEL_CLASS}>{aspectRatio}</span>
-                  {model.aspectRatios.length > 1 && <PromptChevronIcon />}
+                  {ratiosFor(model, quality).length > 1 && <PromptChevronIcon />}
                 </button>
                 {menu === 'ratio' && (
                   <PromptPopover>
                     <PromptPopoverHeader>Aspect ratio</PromptPopoverHeader>
                     <PromptMenuList>
-                      {model.aspectRatios.map((r) => (
-                        <PromptMenuItem key={r} selected={r === aspectRatio} onClick={() => { setAspectRatio(r); setMenu(null); }}>{r}</PromptMenuItem>
+                      {ratiosFor(model, quality).map((r) => (
+                        <PromptMenuItem key={r} selected={r === aspectRatio} data-testid={`ratio-${r}`} description={sizeFor(model, quality, r) ?? undefined}
+                          onClick={() => { setAspectRatio(r); setMenu(null); }}>
+                          {r}
+                        </PromptMenuItem>
                       ))}
                     </PromptMenuList>
+                  </PromptPopover>
+                )}
+              </div>
+            )}
+
+            {/* Duration: frame counts the model accepts, shown in seconds */}
+            {model?.video && (
+              <div className="relative">
+                <button type="button" onClick={toggle('duration')} data-testid="duration-picker"
+                  className={promptControlClassName({ active: menu === 'duration', compact: true })}>
+                  <PromptDurationIcon />
+                  <span className={PROMPT_CONTROL_LABEL_CLASS}>
+                    {frames ? formatSeconds(Number(frames) / model.video.fps) : model.defaults.frames ? formatSeconds(model.defaults.frames / model.video.fps) : 'Default length'}
+                  </span>
+                  <PromptChevronIcon />
+                </button>
+                {menu === 'duration' && (
+                  <PromptPopover className="min-w-[200px]">
+                    <PromptPopoverHeader>Duration</PromptPopoverHeader>
+                    <PromptMenuList>
+                      {durationOptions(model).map((o) => (
+                        <PromptMenuItem key={o.frames} data-testid={`duration-${o.frames}`}
+                          selected={String(o.frames) === frames || (!frames && o.frames === model.defaults.frames)}
+                          description={`${o.frames} frames at ${model.video!.fps} fps${o.frames === model.defaults.frames ? ' · default' : ''}`}
+                          onClick={() => { setFrames(o.frames === model.defaults.frames ? '' : String(o.frames)); setMenu(null); }}>
+                          {formatSeconds(o.seconds)}
+                        </PromptMenuItem>
+                      ))}
+                    </PromptMenuList>
+                    <p className="mt-2 px-1 text-[10px] leading-4 text-white/35">Longer videos need more GPU memory and take longer.</p>
                   </PromptPopover>
                 )}
               </div>
@@ -418,7 +489,7 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
                 className={promptControlClassName({ active: menu === 'settings' || settingsChanged, compact: true })}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
                 <span className={PROMPT_CONTROL_LABEL_CLASS}>
-                  {frames ? `${frames} frames` : model?.defaults.frames ? `${model.defaults.frames} frames` : 'Settings'}
+                  {!model?.video && frames ? `${frames} frames` : !model?.video && model?.defaults.frames ? `${model.defaults.frames} frames` : 'Settings'}
                 </span>
                 <PromptChevronIcon />
               </button>
@@ -427,10 +498,10 @@ export default function LocalVideoStudio({ mediaType = 'video', onGenerationStar
                   <PromptPopoverHeader>Settings</PromptPopoverHeader>
                   <div className="grid grid-cols-3 gap-2 px-1">
                     {([
-                      ['Frames', frames, setFrames, model?.defaults.frames ? String(model.defaults.frames) : 'default'],
-                      ['Steps', steps, setSteps, model?.defaults.steps ? String(model.defaults.steps) : 'default'],
-                      ['Seed', seed, setSeed, 'random'],
-                    ] as const).map(([label, value, setter, placeholder]) => (
+                      ...(model?.video ? [] : [['Frames', frames, setFrames, model?.defaults.frames ? String(model.defaults.frames) : 'default'] as const]),
+                      ['Steps', steps, setSteps, model?.defaults.steps ? String(model.defaults.steps) : 'default'] as const,
+                      ['Seed', seed, setSeed, 'random'] as const,
+                    ]).map(([label, value, setter, placeholder]) => (
                       <label key={label} className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                         {label}
                         <input inputMode="numeric" value={value} placeholder={placeholder} data-testid={`setting-${label.toLowerCase()}`}
