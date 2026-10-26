@@ -63,7 +63,7 @@ RUN useradd -u 1000 -ms /bin/bash wangp \
 
 COPY --chmod=755 entrypoint.sh /usr/local/bin/wan2gp-entrypoint.sh
 # Model download/remove service for the studio (internal port 7867, see zf_model_server.py).
-COPY --chmod=644 zf_models.py zf_model_server.py /opt/zf/
+COPY --chmod=755 zf_models.py zf_model_server.py /opt/zf/
 
 USER wangp
 ENV HOME=/home/wangp \
