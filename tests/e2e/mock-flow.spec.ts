@@ -72,6 +72,29 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     await expect(page.getByText('Last frame', { exact: true })).toHaveCount(0);
   });
 
+  test('offers the quality, aspect ratio and duration each model supports', async ({ page }) => {
+    await page.goto('/local/video');
+    await page.getByTestId('model-picker').click();
+    await page.getByTestId('model-wan-2.2-t2v').getByRole('menuitemradio').click();
+    await expect(page.getByTestId('quality-picker')).toHaveText('480p');
+    await page.getByTestId('quality-picker').click();
+    await page.getByTestId('quality-1080p').click();
+    // 1080p has no 4:3 in Wan2GP's presets.
+    await page.getByTestId('ratio-picker').click();
+    await expect(page.getByTestId('ratio-4:3')).toHaveCount(0);
+    await expect(page.getByTestId('ratio-9:16')).toContainText('1088x1920');
+    await page.getByTestId('ratio-9:16').click();
+    // Durations are WanGP frame counts (4n+1 at 16 fps).
+    await page.getByTestId('duration-picker').click();
+    await expect(page.getByTestId('duration-81')).toContainText('81 frames at 16 fps');
+    await page.getByTestId('duration-161').click();
+    await expect(page.getByTestId('duration-picker')).toHaveText('10.1 s');
+    // Hunyuan here is the 480p model: one quality only.
+    await page.getByTestId('model-picker').click();
+    await page.getByTestId('model-hunyuan-video-1.5').getByRole('menuitemradio').click();
+    await expect(page.getByTestId('quality-picker')).toHaveText('480p');
+  });
+
   test('cancels a running job', async ({ page }) => {
     await page.goto('/local/video');
     await page.getByTestId('model-picker').click();
