@@ -35,7 +35,8 @@
       "todo": [
         "First/last-frame inputs: confirm the Wan2GP settings keys for FL2VA before enabling image input.",
         "No default resolution in defaults/minimax_h3_fl2va_pruned.json; Wan2GP's own default is used."
-      ]
+      ],
+      "downloadSize": 51888555786
     },
     {
       "id": "ltx-2.5",
@@ -63,7 +64,8 @@
       },
       "todo": [
         "Start/end image inputs: confirm the Wan2GP settings keys for LTX-2.5 before enabling image input."
-      ]
+      ],
+      "downloadSize": 41332031011
     },
     {
       "id": "wan-2.2-t2v",
@@ -88,7 +90,8 @@
           "9:16": "480x832",
           "1:1": "720x720"
         }
-      }
+      },
+      "downloadSize": 39984317608
     },
     {
       "id": "wan-2.2-i2v",
@@ -113,7 +116,8 @@
           "9:16": "480x832",
           "1:1": "720x720"
         }
-      }
+      },
+      "downloadSize": 39987594416
     },
     {
       "id": "hunyuan-video-1.5",
@@ -140,7 +144,8 @@
           "16:9": "832x480",
           "9:16": "480x832"
         }
-      }
+      },
+      "downloadSize": 26169257400
     },
     {
       "id": "skyreels-v3",
@@ -220,7 +225,8 @@
       "todo": [
         "Output size is fixed at 1088x832 and the audio-embed length at 500 frames (nodes 245, 246, 270), as in the upstream example.",
         "The wav2vec model (TencentGameMate/chinese-wav2vec2-base) is downloaded by ComfyUI on first use."
-      ]
+      ],
+      "downloadSize": 32010312590
     },
     {
       "id": "cosmos3-super",
@@ -326,7 +332,8 @@
       "defaults": {
         "steps": 35,
         "frames": 93
-      }
+      },
+      "downloadSize": 130637742385
     }
   ]
 }

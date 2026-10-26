@@ -17,6 +17,8 @@ export interface ModelInfo {
   aspectRatios: string[];
   defaults: { steps?: number; frames?: number };
   todo: string[];
+  // Bytes of a full download (Models page).
+  downloadSize?: number;
   availability: { status: Availability; detail?: string };
 }
 

@@ -157,6 +157,13 @@ export default function ModelManager() {
                         {files && ` · ${files.present} of ${files.total} file(s) on disk${files.bytes ? `, ${formatBytes(files.bytes)}` : ''}`}
                         {files && files.partialBytes > 0 && ` · ${formatBytes(files.partialBytes)} partly downloaded`}
                       </div>
+                      {m.downloadSize && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] font-semibold text-white/70" data-testid="download-size"
+                          title="Total size of all the model's files. Files already downloaded for another model are not downloaded again.">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5" /><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" /></svg>
+                          Needs {formatBytes(m.downloadSize)} of disk space
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {installed ? <StatusBadge status="installed" /> : <StatusBadge status={m.availability.status} detail={m.availability.detail} />}

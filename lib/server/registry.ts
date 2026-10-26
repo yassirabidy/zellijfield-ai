@@ -91,6 +91,9 @@ export const modelSchema = z
     comfyui: comfyuiBlock.optional(),
     fal: falBlock.optional(),
     replicate: replicateBlock.optional(),
+    // Total bytes of a full download (all files, including ones shared with other models),
+    // measured from the real sources (Wan2GP: its default int8 files); shown on the Models page.
+    downloadSize: z.number().int().positive().optional(),
     todo: z.array(z.string()).default([]),
   })
   .superRefine((m, ctx) => {
