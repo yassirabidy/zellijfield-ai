@@ -12,6 +12,14 @@ The studio talks to Wan2GP through its MCP server (`http://wan2gp:7866/mcp`) and
 HTTP/WebSocket (`http://comfyui:8188`). Containers never spawn each other's processes, and the
 Docker socket is never mounted. Wan2GP's Gradio UI is not started.
 
+**Engine manager.** The dashboard installs, starts, stops and deletes the engines through
+`scripts/engine-manager.ps1`, a PowerShell script that `start.bat` runs in the background on
+Windows (`stop.bat` stops it). It opens no network port: the studio writes small request files to
+`data/engines/requests/` naming one of the fixed engines (`wan2gp`, `comfyui`) and actions
+(`install`, `start`, `stop`, `delete`), and the manager runs the matching `docker compose` command
+with a fixed argument list and writes `data/engines/status.json` back. Anything else in a request
+is ignored. On Linux/macOS there is no manager; use `start.sh <profile>` and `stop.sh` instead.
+
 The Models page downloads and removes weights. For Wan2GP models it calls a small service in the
 wan2gp container (`docker/wan2gp/zf_model_server.py`, `http://wan2gp:7867`) that runs WanGP's own
 downloader and file lists, so the files match what a generation would fetch. ComfyUI weights are
@@ -105,6 +113,8 @@ use 4 or more on 32 GB+.
   they are never sent to the browser or written to logs. Keep `./data` private and out of backups
   you share.
 - All containers run as non-root users (uid 1000).
+- No container controls Docker. Engine actions from the dashboard go through the engine manager on
+  the host, which accepts only the fixed engine/action names above.
 
 ## LAN access (other computers on the network)
 

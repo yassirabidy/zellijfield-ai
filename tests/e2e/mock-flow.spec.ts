@@ -93,6 +93,9 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     await page.goto('/local/models');
     const list = page.getByTestId('model-manager-list');
     await expect(list).toBeVisible();
+    // Engines section; no engine manager runs in this test, so it says how to start one.
+    await expect(page.getByTestId('engine-wan2gp').getByTestId('engine-size')).toHaveText('Needs ≈ 34 GB of disk space');
+    await expect(page.getByTestId('engine-manager-offline')).toBeVisible();
     // Only local engines are managed here; the mock model has nothing to download.
     await expect(page.getByTestId('manage-mock-video')).toHaveCount(0);
     const sky = page.getByTestId('manage-skyreels-v3');

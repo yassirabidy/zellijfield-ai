@@ -101,16 +101,31 @@ Double-click **`preflight.bat`**, or from PowerShell:
 Every line should be `[ OK ]`. It checks Docker, GPU access from containers, disk space, the port
 and the model folders, and creates the folder tree under `models/` and `data/`.
 
-## 8. Models
+## 8. Engines and models
 
-Models are downloaded and removed from the website: **Local → Models**. Each model has a
-**Download** button, a progress bar, **Cancel download**, and **Remove** to free disk space when the
-model is no longer needed. Download a model when you need it; nothing is downloaded in advance.
+Everything is managed from the website: **Local → Models**. Nothing is downloaded in advance.
 
-- **Wan2GP models** (MiniMax H3, LTX-2.5, Wan 2.2, HunyuanVideo 1.5) are downloaded by Wan2GP
-  itself, so they need the `wan2gp` or `full` start mode (section 9). Wan2GP takes a minute or
-  two to get ready before the first bytes arrive. Files go to `models/wan2gp/`. If a model was not
-  downloaded here, Wan2GP still fetches it on the first generation.
+**Engines.** Local models run inside one of two engines: **Wan2GP** (≈ 34 GB, for MiniMax H3,
+LTX-2.5, Wan 2.2 and HunyuanVideo 1.5) and **ComfyUI** (≈ 16 GB, for SkyReels-V3 and Cosmos3-Super).
+The **Engines** section at the top of the page shows each engine's status and disk usage, with
+**Install**, **Start**, **Stop** and **Delete** buttons. Installing an engine the first time takes
+30–60 minutes (it is downloaded and built for this GPU). Stop an engine to free GPU memory when you
+are not using it, and delete it to free its disk space; downloaded models stay on disk.
+
+These buttons work through the **engine manager**, a small program that `start.bat` starts in the
+background (section 9). If the page says the engine manager is not running, start Zellijfield AI
+with `start.bat` again.
+
+**Models.** Each model has a **Download** button, a progress bar, **Cancel download**, and
+**Remove** to free disk space when the model is no longer needed. If the model's engine is not
+installed yet, the button says **Install engine + download**: the engine is installed first, then
+the model is downloaded, without anything else to do. After removing the last model of an engine,
+the page suggests deleting that engine too.
+
+- **Wan2GP models** are downloaded by Wan2GP itself, so Wan2GP must be installed and running (the
+  button takes care of that). Wan2GP takes a minute or two to get ready before the first bytes
+  arrive. Files go to `models/wan2gp/`. If a model was not downloaded here, Wan2GP still fetches it
+  on the first generation.
 - **ComfyUI models** are downloaded by the studio from Hugging Face into `models/comfyui/`, with
   the exact names ComfyUI expects. ComfyUI does not need to be running for this. A cancelled
   download continues where it stopped the next time.
@@ -136,7 +151,10 @@ The voice model used by SkyReels-V3 (wav2vec2) is downloaded by ComfyUI on first
 
 ## 9. Start
 
-Double-click **`start.bat full`** — or in PowerShell:
+**Simplest:** double-click **`start.bat`**. It starts the website (≈ 0.5 GB) and the engine
+manager; install engines and models later from **Local → Models** (section 8).
+
+To install and start both engines straight away instead, run **`start.bat full`** — or in PowerShell:
 
 ```powershell
 .\start.bat full
@@ -155,7 +173,7 @@ Docker Desktop shows one stack, **zellijfield-ai**, with `studio`, `wan2gp` and 
 be started and stopped from there too. Wan2GP needs a few minutes after the container starts before
 it reports *healthy*.
 
-Other start modes: `start.bat` (mock only, no GPU), `start.bat wan2gp`, `start.bat comfyui`.
+Other start modes: `start.bat` (website and engine manager only), `start.bat wan2gp`, `start.bat comfyui`.
 Stop everything with **`stop.bat`** (images, models and outputs are kept).
 
 ## 10. First real generation
@@ -208,6 +226,12 @@ Preflight names the program using it. Stop it, or set another port in `.env`, e.
 - In the `mock` profile the GPU services are not started — use `start.bat full`.
 - Wan2GP takes several minutes after start: wait for `docker compose ps` to show it *healthy*.
 - If you changed the URLs in Local → Settings, press **Reset to defaults**.
+
+### "The engine manager is not running"
+
+The Engines buttons need the engine manager, which `start.bat` starts in the background. Run
+`start.bat` again (it does nothing if the manager is already running). It is a PowerShell window
+named *Zellijfield AI engine manager*, minimized; `stop.bat` closes it.
 
 ### A download fails or stops
 
