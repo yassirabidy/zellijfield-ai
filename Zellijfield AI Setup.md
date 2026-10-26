@@ -1,9 +1,13 @@
 # Zellijfield AI Setup
 
 This file is written for an AI assistant (Claude, ChatGPT, …) that installs and starts Zellijfield AI
-on a Windows PC, working together with the person at that PC. Follow the steps **in order**. After each
+on a Windows PC, working together with the person at that PC. Follow steps 1–7 **in order**. After each
 step, run its **Check** and only continue when it passes. If a check fails, use the *Problems* section
 or stop and report (see *What to report*).
+
+**The setup ends at step 7, when the website runs.** It installs no engines and no models. Engines
+(Wan2GP, ComfyUI) and models are optional and are installed later by the person, by clicking
+**Install** in the website — see *After setup*.
 
 Target PC: **Windows 11, NVIDIA RTX 5080 (16 GB VRAM), 64 GB RAM, Intel Core Ultra 9**.
 Commands are for **PowerShell**. "As Administrator" means a PowerShell window opened with
@@ -20,8 +24,8 @@ Commands are for **PowerShell**. "As Administrator" means a PowerShell window op
 - Do not run destructive Docker commands (`docker system prune -a`, `docker volume rm …`, deleting
   `models/` or `data/`) unless the person explicitly asks.
 - Ask the person before steps that need a reboot, an administrator window, or a sign-in.
-- Long steps are normal: the first engine install takes 30–60 minutes and models are 24–48 GB each.
-  Do not cancel them because they are slow; check progress instead.
+- Do not install engines or download models during setup (no `start.bat full`, `start.bat wan2gp`,
+  `start.bat comfyui` or `docker compose build wan2gp/comfyui`). Only `start.bat` without arguments.
 
 ## What gets installed
 
@@ -29,11 +33,12 @@ Commands are for **PowerShell**. "As Administrator" means a PowerShell window op
 |---|---|---|
 | Docker Desktop + WSL2 | a few GB | Runs everything below |
 | Studio (website) | ≈ 0.5 GB | The dashboard at http://127.0.0.1:3000 |
-| Wan2GP engine | ≈ 35 GB | Runs MiniMax H3, LTX-2.5, Wan 2.2, HunyuanVideo 1.5 |
-| ComfyUI engine (optional) | ≈ 16 GB | Runs SkyReels-V3 (talking avatar) and Cosmos3 |
-| Each model | 24–48 GB | Downloaded from the website when needed |
+| Wan2GP engine (later, optional) | ≈ 35 GB | Runs MiniMax H3, LTX-2.5, Wan 2.2, HunyuanVideo 1.5 |
+| ComfyUI engine (later, optional) | ≈ 16 GB | Runs SkyReels-V3 (talking avatar) and Cosmos3 |
+| Each model (later, optional) | 24–48 GB | Downloaded from the website when needed |
 
-Plan for **at least 100 GB free** on the drive that holds the project and Docker's data.
+The setup itself needs only a few GB (Docker Desktop, WSL2 and the 0.5 GB website). To generate
+videos later, plan for **at least 100 GB free** for one engine and a couple of models.
 
 ---
 
@@ -141,20 +146,21 @@ Must show `12.0`, `6`, `4` and `ZF_BIND_ADDRESS=127.0.0.1`.
 ```powershell
 .\preflight.bat full
 ```
-It checks Docker, GPU access from containers, disk space, the port and the folders, and creates the
-folder tree under `models\` and `data\`.
+It only checks — Docker, GPU access from containers, disk space, the port — and creates the empty
+folder tree under `models\` and `data\`. It installs no engine.
 
-**Check:** every line is `[ OK ]` (a `[WARN]` about disk space is acceptable if there is still more
-than 100 GB free). Fix any `[FAIL]` before continuing (see *Problems*).
+**Check:** every line is `[ OK ]`. A `[WARN]` about disk space is fine for the setup (it only needs a
+few GB); tell the person that engines and models need about 100 GB later. Fix any `[FAIL]` before
+continuing (see *Problems*).
 
 ## Step 7 — Start Zellijfield AI
 
 ```powershell
 .\start.bat
 ```
-This builds and starts the website and starts the **engine manager** in the background (a minimized
-PowerShell window called *Zellijfield AI engine manager*). The first run builds the studio image
-(a few minutes). The browser then opens http://127.0.0.1:3000.
+This builds and starts **only the website** (≈ 0.5 GB) and starts the **engine manager** in the
+background (a minimized PowerShell window called *Zellijfield AI engine manager*). The first run builds
+the studio image (a few minutes). The browser then opens http://127.0.0.1:3000. No engine is installed.
 
 Always start the project with `start.bat` (not only from Docker Desktop): the engine manager is what
 lets the website install and control the engines.
@@ -164,18 +170,28 @@ lets the website install and control the engines.
 docker compose ps
 ```
 shows `studio` as `healthy`, and http://127.0.0.1:3000 shows two cards: **Local** and **API key**.
+In the website, **Local → Models** shows an **Engines** section with Wan2GP and ComfyUI as
+*Not installed*, and no warning that the engine manager is not running.
 
-## Step 8 — Install the engine and a first model (in the website)
+**Setup is complete.** Stop here and tell the person the website is ready. Everything below is
+optional and done by the person, in the website, whenever they want.
+
+---
+
+## After setup (optional): engines and models, from the website
+
+Done by the person when they want to generate videos locally — not part of the setup.
+
+### Install an engine and a model
 
 1. Open http://127.0.0.1:3000 → **Local** → **Models** (left menu).
-2. The **Engines** section must show Wan2GP and ComfyUI as *Not installed* (not "engine manager is
-   not running" — if it says that, run `.\start.bat` again).
-3. On **LTX-2.5 Distilled 22B** (fast, 38.5 GB) — or **HunyuanVideo 1.5** (smallest, 24.4 GB) — click
-   **Install engine + download**, then confirm.
-4. Wait. Step 1 of 2 installs the Wan2GP engine (30–60 minutes the first time: it downloads and
-   compiles for the RTX 5080). Step 2 of 2 downloads the model; the card shows progress.
+2. Either click **Install** on an engine in the **Engines** section, or click **Install engine +
+   download** on a model: that installs the model's engine first, then downloads the model.
+   Good first models: **LTX-2.5 Distilled 22B** (fast, 38.5 GB) or **HunyuanVideo 1.5** (smallest, 24.4 GB).
+3. Wait. The first Wan2GP install takes 30–60 minutes (it downloads and compiles for the RTX 5080);
+   then the model downloads (the card shows progress). Do not cancel because it is slow.
 
-**Check:** the Wan2GP engine shows **Running**, and the model shows **Installed**.
+**Check:** the engine shows **Running**, and the model shows **Installed**.
 
 Progress can also be followed with:
 ```powershell
@@ -183,7 +199,7 @@ docker compose --profile full logs -f --tail 50 wan2gp
 ```
 (Ctrl+C stops following the log; it does not stop the engine.)
 
-## Step 9 — First video
+### First video
 
 1. **Video Studio** (left menu). In the bottom prompt bar pick the installed model.
 2. Keep **480p** and a short duration (≈ 5 s) for the first test.
