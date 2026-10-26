@@ -125,7 +125,9 @@ describe('job queue', () => {
     expect(() => queue.submit({ modelId: 'mock-video', prompt: 'x', audioUploadId: crypto.randomUUID() })).toThrow(/does not accept an audio/);
     expect(() => queue.submit({ modelId: 'mock-video', prompt: 'x', aspectRatio: '4:3' })).toThrow(/supports/);
     // Wan 2.2 i2v needs a start frame.
-    expect(() => makeQueue({ wan2gp: createMockAdapter() }).submit({ modelId: 'wan-2.2-i2v', prompt: 'x' })).toThrow(/needs an image/);
+    expect(() => makeQueue({ wan2gp: createMockAdapter() }).submit({ modelId: 'wan-2.2-i2v', prompt: 'x' })).toThrow(/needs a start image/);
+    // Last frames only for models that support them.
+    expect(() => queue.submit({ modelId: 'mock-video', prompt: 'x', endImageUploadId: crypto.randomUUID() })).toThrow(/does not accept a last-frame image/);
   });
 
   it('rejects malformed requests at the schema level', () => {

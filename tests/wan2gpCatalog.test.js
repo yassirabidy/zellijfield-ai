@@ -79,4 +79,8 @@ test('buildWan2gpSettings passes the start frame as image_start and requires it 
     const settings = buildWan2gpSettings(i2v, { prompt: 'x', seed: 1 }, { imageStart: '/tmp/start.png' });
     assert.equal(settings.image_start, '/tmp/start.png');
     assert.equal(settings.model_type, 'i2v_2_2');
+    assert.equal(settings.image_end, undefined);
+
+    const both = buildWan2gpSettings(i2v, { prompt: 'x', seed: 1 }, { imageStart: '/tmp/start.png', imageEnd: '/tmp/end.png' });
+    assert.equal(both.image_end, '/tmp/end.png');
 });

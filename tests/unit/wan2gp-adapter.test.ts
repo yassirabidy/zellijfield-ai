@@ -15,6 +15,8 @@ function fakeWanGP(opts: { availability?: string; fail?: boolean } = {}) {
   const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.endsWith('/download/abc')) return new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 });
+    const upload = /\/upload\/(\w+)$/.exec(url);
+    if (upload && init?.method === 'PUT') return json({ media_id: `media-${upload[1]}` });
     const msg = JSON.parse(String(init?.body ?? '{}'));
     if (!('id' in msg)) return json('', 202);
     const result = (r: unknown) => json({ jsonrpc: '2.0', id: msg.id, result: r });
@@ -35,6 +37,8 @@ function fakeWanGP(opts: { availability?: string; fail?: boolean } = {}) {
           return tool(opts.fail
             ? { done: true, result: { success: false, errors: [{ message: 'CUDA out of memory' }] } }
             : { done: true, result: { success: true, gallery_items: [{ media_id: 'abc', media_type: 'video' }] } });
+        case 'wangp_create_gallery_upload':
+          return tool({ upload_url: `/upload/${String(args.filename).replace(/\W/g, '')}` });
         case 'wangp_create_gallery_download':
           return tool({ download_url: '/download/abc', filename: 'wan_out.mp4' });
       }
@@ -68,6 +72,25 @@ describe('wan2gp adapter (MCP)', () => {
     expect(result.filePath).toBe(path.join(outputDir, 'j1.mp4'));
     expect([...fs.readFileSync(result.filePath)]).toEqual([1, 2, 3, 4]);
     expect(events.some((e) => e.status === 'generating' && e.progress === 0.4)).toBe(true);
+  }, 15_000);
+
+  it('uploads start and last frames and sends them as image_start / image_end', async () => {
+    const server = fakeWanGP();
+    const adapter = createWan2gpAdapter({ mode: 'mcp', getUrl: () => 'http://wan2gp:7866', fetchImpl: server.fetchImpl });
+    const start = path.join(outputDir, 'first.png');
+    const end = path.join(outputDir, 'last.png');
+    fs.writeFileSync(start, 'a');
+    fs.writeFileSync(end, 'b');
+    await adapter.generate({
+      jobId: 'j2',
+      model: getModel('minimax-h3')!,
+      params: { prompt: 'a door opens', imagePath: start, endImagePath: end },
+      outputDir,
+      signal: new AbortController().signal,
+      onProgress: () => {},
+    });
+    const submitted = server.calls.find((c) => c.name === 'wangp_generate')!.args.source as Record<string, unknown>;
+    expect(submitted).toMatchObject({ model_type: 'minimax_h3_fl2va_pruned', image_start: 'media-firstpng', image_end: 'media-lastpng' });
   }, 15_000);
 
   it('surfaces WanGP errors', async () => {

@@ -60,6 +60,18 @@ test.describe('Local dashboard (no GPU, no API keys)', () => {
     await expect(page.getByTestId('gallery-grid').getByText('A paper boat drifting down a rainy street')).toBeVisible();
   });
 
+  test('offers start and last frames for models that support them', async ({ page }) => {
+    await page.goto('/local/video');
+    await page.getByTestId('model-picker').click();
+    await page.getByTestId('model-minimax-h3').getByRole('menuitemradio').click();
+    await expect(page.getByText('Start image', { exact: true })).toBeVisible();
+    await expect(page.getByText('Last frame', { exact: true })).toBeVisible();
+    // Text-only models have no image buttons.
+    await page.getByTestId('model-picker').click();
+    await page.getByTestId('model-wan-2.2-t2v').getByRole('menuitemradio').click();
+    await expect(page.getByText('Last frame', { exact: true })).toHaveCount(0);
+  });
+
   test('cancels a running job', async ({ page }) => {
     await page.goto('/local/video');
     await page.getByTestId('model-picker').click();
