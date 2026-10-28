@@ -49,6 +49,19 @@ describe('engine manager bridge', () => {
     expect(() => m.request('wan2gp', 'start')).toThrow(/not installed/);
     expect(() => m.request('comfyui', 'delete')).toThrow(/busy/);
   });
+
+  it('cancels only a running operation, even while the engine is busy', () => {
+    writeStatus({ comfyui: engineStatus({ busy: true, op: { action: 'install', status: 'running', progress: 0.2 } }) });
+    const m = manager();
+    expect(() => m.request('wan2gp', 'cancel')).toThrow(/nothing to cancel/);
+    m.request('comfyui', 'cancel');
+    expect(requests()).toEqual([{ engine: 'comfyui', action: 'cancel', requestedAt: now }]);
+  });
+
+  it('reads a cancelled operation', () => {
+    writeStatus({ wan2gp: engineStatus({ op: { action: 'install', status: 'cancelled', progress: 0, message: 'Cancelled', error: null, startedAt: 1, finishedAt: 2 } }) });
+    expect(manager().get('wan2gp').op).toMatchObject({ action: 'install', status: 'cancelled' });
+  });
 });
 
 describe('downloads install the engine first', () => {
@@ -85,6 +98,23 @@ describe('downloads install the engine first', () => {
     for (let i = 0; i < 100 && posted.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
     expect(posted).toEqual([{ model_type: 't2v_2_2' }]);
     expect((await m.overview())[0].download).toMatchObject({ status: 'running' });
+  });
+
+  it('stops waiting when the engine install is cancelled', async () => {
+    let engine: EngineState = { id: 'wan2gp', name: 'Wan2GP', sizeEstimate: '≈ 34 GB', installed: false, sizeLabel: null, sizeBytes: null, container: 'none', health: '', ready: false, busy: false, op: null };
+    const m = createDownloadManager({
+      comfyuiDir: os.tmpdir(), getToolsUrl: () => 'http://wan2gp:7867', getModels: () => [wan], isBusy: () => false,
+      fetchImpl: (async () => { throw new TypeError('fetch failed'); }) as typeof fetch,
+      engineCheckMs: 5,
+      engines: { snapshot: () => ({ managerOnline: true, engines: [engine] }), request: () => {} },
+    });
+
+    await m.start('wan-a');
+    expect((await m.overview())[0].download).toMatchObject({ status: 'waiting-engine' });
+
+    engine = { ...engine, op: { action: 'install', status: 'cancelled', progress: 0, message: 'Cancelled', error: null, startedAt: 1, finishedAt: 2 } };
+    for (let i = 0; i < 100 && (await m.overview())[0].download; i++) await new Promise((r) => setTimeout(r, 5));
+    expect((await m.overview())[0].download).toBeNull();
   });
 
   it('keeps the plain "not running" error without an engine manager', async () => {

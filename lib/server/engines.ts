@@ -11,8 +11,11 @@ import { ClientError } from './http';
 
 export const engineIdSchema = z.enum(['wan2gp', 'comfyui']);
 export const engineActionSchema = z.enum(['install', 'start', 'stop', 'delete']);
+// What the studio may ask for: an action, or cancelling the running one.
+export const engineRequestSchema = z.enum([...engineActionSchema.options, 'cancel']);
 export type EngineId = z.infer<typeof engineIdSchema>;
 export type EngineAction = z.infer<typeof engineActionSchema>;
+export type EngineRequest = z.infer<typeof engineRequestSchema>;
 
 export const ENGINE_INFO: Record<EngineId, { name: string; sizeEstimate: string }> = {
   // Disk usage reported by Docker for the built images (CUDA 12.8, PyTorch 2.10).
@@ -26,7 +29,7 @@ const STALE_MS = 15_000;
 const opSchema = z
   .object({
     action: engineActionSchema,
-    status: z.enum(['running', 'succeeded', 'failed']),
+    status: z.enum(['running', 'succeeded', 'failed', 'cancelled']),
     progress: z.number().min(0).max(1).catch(0),
     message: z.string().nullable().catch(null),
     error: z.string().nullable().catch(null),
@@ -113,13 +116,17 @@ export function createEngineManager(options: { dir: string; now?: () => number }
   }
 
   // Writes a request file for the manager (write + rename, so it never reads a partial file).
-  function request(id: EngineId, action: EngineAction): void {
+  function request(id: EngineId, action: EngineRequest): void {
     const snap = snapshot();
     if (!snap.managerOnline) throw new ClientError('The engine manager is not running. Start Zellijfield AI with start.bat, then try again.');
-    if (!snap.dockerOk) throw new ClientError('Docker Desktop is not running. Start it, then try again.');
     const engine = snap.engines.find((e) => e.id === id)!;
-    if (engine.busy || engine.op?.status === 'running') throw new ClientError(`${engine.name} is busy (${engine.op?.action ?? 'working'}); wait for it to finish.`);
-    if (action !== 'install' && !engine.installed) throw new ClientError(`${engine.name} is not installed.`);
+    if (action === 'cancel') {
+      if (engine.op?.status !== 'running') throw new ClientError(`${engine.name} has nothing to cancel.`);
+    } else {
+      if (!snap.dockerOk) throw new ClientError('Docker Desktop is not running. Start it, then try again.');
+      if (engine.busy || engine.op?.status === 'running') throw new ClientError(`${engine.name} is busy (${engine.op?.action ?? 'working'}); wait for it to finish.`);
+      if (action !== 'install' && !engine.installed) throw new ClientError(`${engine.name} is not installed.`);
+    }
     fs.mkdirSync(requestsDir, { recursive: true });
     const file = path.join(requestsDir, `${crypto.randomUUID()}.json`);
     fs.writeFileSync(`${file}.tmp`, JSON.stringify({ engine: id, action, requestedAt: now() }));

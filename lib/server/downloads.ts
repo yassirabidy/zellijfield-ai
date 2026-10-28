@@ -303,6 +303,11 @@ export function createDownloadManager(input: DownloadManagerOptions) {
     const engine = options.engines?.snapshot().engines.find((e) => e.id === 'wan2gp');
     for (const [modelId, state] of waiting) {
       if (state.status === 'failed') continue;
+      // Engine install cancelled from the Engines panel: stop waiting, like cancelling the download.
+      if (engine?.op?.status === 'cancelled' && engine.op.action === 'install') {
+        waiting.delete(modelId);
+        continue;
+      }
       if (engine?.op?.status === 'failed' && (engine.op.action === 'install' || engine.op.action === 'start')) {
         Object.assign(state, { status: 'failed', error: `Wan2GP could not be ${engine.op.action === 'install' ? 'installed' : 'started'}: ${engine.op.error ?? 'see the engine manager'}` });
         continue;

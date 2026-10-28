@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { engineActionSchema, engineIdSchema } from '@/lib/server/engines';
+import { engineIdSchema, engineRequestSchema } from '@/lib/server/engines';
 import { ClientError, handleError, readJson, rejectCrossOrigin } from '@/lib/server/http';
 import { getServices } from '@/lib/server/services';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const bodySchema = z.object({ action: engineActionSchema }).strict();
+const bodySchema = z.object({ action: engineRequestSchema }).strict();
 
-// Asks the engine manager to install, start, stop or delete an engine.
+// Asks the engine manager to install, start, stop or delete an engine, or to cancel the running operation.
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const refused = rejectCrossOrigin(request);
   if (refused) return refused;
