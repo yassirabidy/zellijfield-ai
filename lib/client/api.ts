@@ -105,6 +105,7 @@ export interface ModelDownloadInfo {
 
 export type EngineId = 'wan2gp' | 'comfyui';
 export type EngineAction = 'install' | 'start' | 'stop' | 'delete';
+export type EngineRequest = EngineAction | 'cancel';
 
 export interface EngineState {
   id: EngineId;
@@ -117,7 +118,7 @@ export interface EngineState {
   health: string;
   ready: boolean;
   busy: boolean;
-  op: { action: EngineAction; status: 'running' | 'succeeded' | 'failed'; progress: number; message: string | null; error: string | null; startedAt: number | null; finishedAt: number | null } | null;
+  op: { action: EngineAction; status: 'running' | 'succeeded' | 'failed' | 'cancelled'; progress: number; message: string | null; error: string | null; startedAt: number | null; finishedAt: number | null } | null;
 }
 
 export interface EnginesSnapshot {
@@ -171,7 +172,7 @@ export const api = {
   cancelDownload: (modelId: string) => request<{ cancelled: boolean }>(`/api/models/${encodeURIComponent(modelId)}/download`, { method: 'DELETE' }),
   removeModel: (modelId: string) => request<RemoveResult>(`/api/models/${encodeURIComponent(modelId)}/files`, { method: 'DELETE' }),
   engines: () => request<EnginesSnapshot>('/api/engines'),
-  engineAction: (id: EngineId, action: EngineAction) => request<{ requested: boolean }>(`/api/engines/${id}`, json('POST', { action })),
+  engineAction: (id: EngineId, action: EngineRequest) => request<{ requested: boolean }>(`/api/engines/${id}`, json('POST', { action })),
   gallery: () => request<{ items: GalleryItem[] }>('/api/gallery').then((r) => r.items),
   upload: (file: File) => {
     const form = new FormData();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { EngineAction, EngineId, EnginesSnapshot, EngineState } from '@/lib/client/api';
+import type { EngineAction, EngineId, EngineRequest, EnginesSnapshot, EngineState } from '@/lib/client/api';
 import { api } from '@/lib/client/api';
 
 // Engines section of the Models page: the Wan2GP and ComfyUI engines with their disk usage and
@@ -13,7 +13,7 @@ const OP_LABEL: Record<EngineAction, string> = { install: 'Installing', start: '
 const SIZE_UNIT: Record<string, number> = { B: 1, KB: 1e3, KIB: 1024, MB: 1e6, MIB: 1024 ** 2, GB: 1e9, GIB: 1024 ** 3 };
 
 // Reads the manager's last Docker line, e.g. "#8 sha256:… 377.49MB / 2.06GB 188.8s" (a layer
-// download) or "#12 [wan2gp 7/15] RUN …" (a build step).
+// download) or "#12 [wan2gp 7/15] RUN …" / "#12 [ 7/15] RUN …" (a build step).
 export function describeOpLine(message: string | null): { download?: { done: string; total: string; fraction: number }; step?: { n: number; of: number } } {
   if (!message) return {};
   const dl = message.match(/([\d.]+)\s*([kKMG]i?B)\s*\/\s*([\d.]+)\s*([kKMG]i?B)/);
@@ -22,7 +22,7 @@ export function describeOpLine(message: string | null): { download?: { done: str
     const total = parseFloat(dl[3]) * (SIZE_UNIT[dl[4].toUpperCase()] ?? 1);
     if (total > 0) return { download: { done: `${dl[1]} ${dl[2]}`, total: `${dl[3]} ${dl[4]}`, fraction: Math.min(1, done / total) } };
   }
-  const st = message.match(/\[(?:\S+\s+)?(\d+)\/(\d+)\]/);
+  const st = message.match(/\[(?:[^\s\]]+\s+)?\s*(\d+)\/(\d+)\]/);
   if (st) return { step: { n: Number(st[1]), of: Number(st[2]) } };
   return {};
 }
@@ -54,7 +54,7 @@ export default function EnginesPanel({ snapshot, usage, onChanged }: {
   const [error, setError] = useState<{ id: EngineId; text: string } | null>(null);
   const [sending, setSending] = useState<EngineId | null>(null);
 
-  async function send(id: EngineId, action: EngineAction) {
+  async function send(id: EngineId, action: EngineRequest) {
     setSending(id);
     setError(null);
     try {
@@ -141,10 +141,19 @@ export default function EnginesPanel({ snapshot, usage, onChanged }: {
                 );
               })()}
               {e.op?.status === 'failed' && <p className="mt-2 whitespace-pre-wrap text-[11px] text-red-300" role="alert">{OP_LABEL[e.op.action]} failed: {e.op.error}</p>}
+              {e.op?.status === 'cancelled' && !running && (
+                <p className="mt-2 text-[11px] text-white/50" data-testid="engine-cancelled">
+                  {e.op.action.charAt(0).toUpperCase() + e.op.action.slice(1)} cancelled.{e.op.action === 'install' && !e.installed ? ' Parts already downloaded are kept, so installing again continues from there.' : ''}
+                </p>
+              )}
               {error?.id === e.id && <p className="mt-2 text-[11px] text-red-300" role="alert" data-testid="engine-error">{error.text}</p>}
 
               <div className="mt-3 flex flex-wrap gap-2">
-                {!e.installed && (
+                {running && e.op?.action === 'install' && (
+                  <button type="button" disabled={!online || sending === e.id} onClick={() => void send(e.id, 'cancel')} data-testid="engine-cancel"
+                    className={`${btn} border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20`}>Cancel install</button>
+                )}
+                {!e.installed && !running && (
                   <button type="button" disabled={disabled} onClick={() => void send(e.id, 'install')} data-testid="engine-install" className={`${btn} bg-[#d1fe17] text-black hover:bg-[#b2d814]`}>Install</button>
                 )}
                 {e.installed && e.container !== 'running' && (

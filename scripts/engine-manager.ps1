@@ -4,6 +4,7 @@
 # giving any container access to Docker (the Docker socket is never mounted). The studio and this
 # script talk through files in <data>/engines:
 #   requests/<id>.json   written by the studio: {"engine": "wan2gp", "action": "install"}
+#                        ("action": "cancel" stops the engine's running operation)
 #   status.json          written here every few seconds: images, containers, running operations
 #   op-<engine>.json     progress of the current operation (written by its background job)
 # Only the fixed engines and actions below are accepted, and every Docker call uses a fixed
@@ -92,13 +93,16 @@ function Get-Steps([string]$Engine, [string]$Action) {
 $opJob = {
     param($ProjectDir, $OpFile, $Engine, $Action, $Steps)
     Set-Location -LiteralPath $ProjectDir
+    # Docker writes UTF-8; without this, Windows PowerShell decodes it with the OEM code page.
+    try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
     function Save($state) {
         $tmp = "$OpFile.tmp"
         [System.IO.File]::WriteAllText($tmp, ($state | ConvertTo-Json -Depth 4 -Compress))
         Move-Item -LiteralPath $tmp -Destination $OpFile -Force
     }
+    # pid: this job's process, so the manager can cancel it (Stop-Operation).
     $state = [ordered]@{ engine = $Engine; action = $Action; status = 'running'; progress = 0; message = 'Starting'; error = $null
-        startedAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); finishedAt = $null }
+        startedAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); finishedAt = $null; pid = $PID }
     Save $state
     $tail = New-Object System.Collections.Generic.List[string]
     $lastSave = Get-Date
@@ -109,9 +113,10 @@ $opJob = {
             if (-not $line) { return }
             $tail.Add($line)
             if ($tail.Count -gt 20) { $tail.RemoveAt(0) }
-            # BuildKit plain progress: "#12 [wan2gp 7/15] RUN ..." gives the build step.
+            # BuildKit plain progress: "#12 [wan2gp 7/15] RUN ..." or "#12 [ 7/15] RUN ..." (the step
+            # number is padded to the width of the total) gives the build step.
             $fraction = $null
-            if ($line -match '\[(?:\S+\s+)?(\d+)/(\d+)\]') { $fraction = [double]$Matches[1] / [double]$Matches[2] }
+            if ($line -match '\[(?:[^\s\]]+\s+)?\s*(\d+)/(\d+)\]') { $fraction = [double]$Matches[1] / [double]$Matches[2] }
             $base = $i / $Steps.Count
             if ($null -ne $fraction) { $state.progress = [math]::Round($base + $fraction / $Steps.Count, 3) }
             $state.message = if ($line.Length -gt 200) { $line.Substring(0, 200) } else { $line }
@@ -164,6 +169,36 @@ function Get-DockerState {
 }
 
 $jobs = @{}
+
+# Kills a process and everything it started (the job's docker, compose and buildx processes).
+function Stop-ProcessTree([int]$Id) {
+    foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $Id" -ErrorAction SilentlyContinue)) {
+        Stop-ProcessTree ([int]$child.ProcessId)
+    }
+    Stop-Process -Id $Id -Force -ErrorAction SilentlyContinue
+}
+
+# Cancels an engine's running operation. Killing the job's Docker client makes BuildKit stop the
+# build; layers already downloaded or built stay cached, so the next install continues from there.
+function Stop-Operation([string]$Engine) {
+    $opFile = Join-Path $root "op-$Engine.json"
+    $op = $null
+    try { $op = Get-Content -LiteralPath $opFile -Raw | ConvertFrom-Json } catch { $op = $null }
+    if ($op -and $op.pid) {
+        $proc = Get-Process -Id ([int]$op.pid) -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'powershell|pwsh' }
+        if ($proc) { Stop-ProcessTree $proc.Id }
+    }
+    Stop-Job -Job $jobs[$Engine] -ErrorAction SilentlyContinue
+    Remove-Job -Job $jobs[$Engine] -Force -ErrorAction SilentlyContinue
+    $jobs.Remove($Engine)
+    if ($op) {
+        $op.status = 'cancelled'
+        $op.message = 'Cancelled'
+        $op.finishedAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        Write-JsonFile $opFile $op
+    }
+}
+
 $docker = Get-DockerState
 $cycle = 0
 Write-Host "Zellijfield AI engine manager running (PID $PID). Watching $requestsDir"
@@ -179,7 +214,16 @@ while ($true) {
         if (-not $request) { continue }
         $engine = "$($request.engine)"
         $action = "$($request.action)"
-        if ($Engines -notcontains $engine -or $Actions -notcontains $action) { continue }
+        if ($Engines -notcontains $engine) { continue }
+        if ($action -eq 'cancel') {
+            if ($jobs.ContainsKey($engine)) {
+                Stop-Operation $engine
+                $cycle = 0  # refresh Docker state right away
+                Write-Host "$(Get-Date -Format s) cancel $engine"
+            }
+            continue
+        }
+        if ($Actions -notcontains $action) { continue }
         if ($jobs.ContainsKey($engine)) { continue }
         $opFile = Join-Path $root "op-$engine.json"
         $steps = Get-Steps $engine $action
